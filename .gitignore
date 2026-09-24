@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Django
+media/
+staticfiles/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
