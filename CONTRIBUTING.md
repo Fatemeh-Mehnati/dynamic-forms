@@ -37,7 +37,7 @@ git push -u origin feature/<نام>
 - PR کوچک باشد و فقط یک کار انجام دهد.
 - قبل از باز کردن PR، `dev` را روی branch خود merge کنید و conflictها را خودتان حل کنید.
 - در توضیح PR شماره‌ی Issue را با `Closes #شماره` بنویسید.
-- feature به `dev` با **Squash and merge** و `dev` به `main` با **Create a merge commit** ادغام می‌شود.
+- همه‌ی PRها با **Create a merge commit** ادغام می‌شوند. branchها بعد از merge پاک نمی‌شوند.
 
 ## migrationها
 - فقط مسئول هر اپ برای مدل‌های آن اپ migration می‌سازد.
