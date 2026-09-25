@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import environ
+from datetime import timedelta  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -19,7 +20,12 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
-THIRD_PARTY_APPS = []
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "drf_spectacular",
+]
+
 LOCAL_APPS = [
     "apps.accounts",
     "apps.builder",
@@ -91,3 +97,29 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Dynamic Forms API",
+    "DESCRIPTION": "API for creating and managing dynamic forms and processes.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
