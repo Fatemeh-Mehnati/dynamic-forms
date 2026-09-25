@@ -1,0 +1,9 @@
+Django>=5.2,<5.3
+djangorestframework
+djangorestframework-simplejwt
+drf-spectacular
+django-environ
+psycopg[binary]
+django-redis
+celery
+gunicorn
