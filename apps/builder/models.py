@@ -72,7 +72,7 @@ class Form(models.Model):
         return self.title
 
 
-class Question(models.Model)
+class Question(models.Model):
     TYPE_TEXT = "text"
     TYPE_SELECT = "select"
     TYPE_CHECKBOX = "checkbox"
