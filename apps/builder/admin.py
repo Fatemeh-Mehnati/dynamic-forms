@@ -25,4 +25,31 @@ class FormAdmin(admin.ModelAdmin):
     ordering = ("form", "order",)
 
 
-    
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "form",
+        "text",
+        "type",
+        "is_required",
+        "is_active",
+        "order",
+    )
+    search_fields = ("text",)
+    list_filter = ("type", "is_required", "is_active",)
+    ordering = ("form", "order",)
+
+
+@admin.register(Choice)
+class ChoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "label",
+        "question",
+        "order",
+        "is_active",
+    )
+    search_fields = ("label",)
+    list_filter = ("is_active",)
+    ordering = ("question", "order",)
