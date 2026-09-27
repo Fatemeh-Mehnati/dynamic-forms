@@ -108,4 +108,18 @@ class Question(models.Model)
     def __str__(self):
         return self.text
 
-    
+class Choice(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="choices",
+    )
+    label = models.CharField(max_length=255)
+    order = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+
+    objects = ActiveManager()
+    al_objects = models.Manager()
+
+    def __str__(self):
+        return self.label
