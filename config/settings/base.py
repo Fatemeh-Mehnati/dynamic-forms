@@ -1,7 +1,7 @@
+from datetime import timedelta  # noqa: E402
 from pathlib import Path
 
 import environ
-from datetime import timedelta  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
