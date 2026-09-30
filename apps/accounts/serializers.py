@@ -29,3 +29,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email", "phone"]
+
+class MeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "first_name", "last_name", "email", "phone"]
+        read_only_fields = ["id", "email", "phone"]
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=False)
