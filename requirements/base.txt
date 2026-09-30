@@ -7,3 +7,4 @@ psycopg[binary]
 django-redis
 celery
 gunicorn
+whitenoise==6.12.0
