@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import Process, ProcessRun, ProcessStep
 
+
 class ProcessStepInline(admin.TabularInline):
     model = ProcessStep
     extra = 0
