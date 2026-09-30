@@ -29,3 +29,16 @@ docker compose exec web python manage.py shell
 docker compose down        # خاموش کردن
 docker compose down -v     # خاموش کردن و پاک کردن داده‌های دیتابیس
 ```
+
+## اجرا در حالت production
+
+```bash
+cp .env.prod.example .env.prod
+```
+در `.env.prod`، مقدار `SECRET_KEY` و رمز دیتابیس را تنظیم کنید. روی سرور واقعی با HTTPS، `SECURE_COOKIES=True` و `ALLOWED_HOSTS` را با دامنه‌ی خود تنظیم کنید.
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+```
+پروژه با Gunicorn اجرا می‌شود، migrationها و `collectstatic` خودکار انجام می‌شوند و فایل‌های static با WhiteNoise سرو می‌شوند.
