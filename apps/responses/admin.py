@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import Answer, AnswerChoice, Submission
 
+
 class AnswerInline(admin.TabularInline):
     model = Answer
     extra = 0
