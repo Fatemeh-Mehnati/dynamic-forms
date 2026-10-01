@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Form, Choice, Question
+from .models import Category, Choice, Form, Question
 
 
 @admin.register(Category)
