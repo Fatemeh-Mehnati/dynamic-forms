@@ -16,5 +16,6 @@ urlpatterns = [
     # Each app adds its routes here, e.g.:
     # path("forms/", include("apps.builder.urls")),
     path("",include("apps.processes.urls")),
-
+    path("", include("apps.accounts.urls")),
+    path("", include("apps.responses.urls")),
 ]
