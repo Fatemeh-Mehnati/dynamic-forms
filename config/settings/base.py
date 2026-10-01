@@ -1,7 +1,7 @@
+from datetime import timedelta  # noqa: E402
 from pathlib import Path
 
 import environ
-from datetime import timedelta  # noqa: E402
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -23,6 +23,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
 ]
 
@@ -110,6 +111,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": "5/min",
+        "otp_verify": "10/min",
+    },
 }
 
 SIMPLE_JWT = {
@@ -123,3 +128,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+# OTP
+OTP_LENGTH = 6
+OTP_TTL_SECONDS = 120
+OTP_MAX_ATTEMPTS = 5
+OTP_RESEND_COOLDOWN_SECONDS = 60
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@dynamic-forms.local")
