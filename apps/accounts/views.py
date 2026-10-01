@@ -85,4 +85,3 @@ class LogoutView(APIView):
 
         logout(request)
         return Response(status=204)
-# Create your views here.
