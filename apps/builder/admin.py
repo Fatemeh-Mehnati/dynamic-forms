@@ -21,8 +21,8 @@ class FormAdmin(admin.ModelAdmin):
         "created_at",
     )
     search_fields = ("title", "slug")
-    list_filter = ("type", "is_required", "is_active",)
-    ordering = ("form", "order",)
+    list_filter = ("is_public", "category", "created_at")
+    ordering = ("-created_at",)
 
 
 @admin.register(Question)

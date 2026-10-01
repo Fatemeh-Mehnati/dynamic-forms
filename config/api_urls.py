@@ -15,5 +15,7 @@ urlpatterns = [
     path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # Each app adds its routes here, e.g.:
     # path("forms/", include("apps.builder.urls")),
+    path("",include("apps.processes.urls")),
     path("auth/", include("apps.accounts.urls")),
+    path("", include("apps.responses.urls")),
 ]
