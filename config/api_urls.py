@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -15,4 +15,6 @@ urlpatterns = [
     path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # Each app adds its routes here, e.g.:
     # path("forms/", include("apps.builder.urls")),
+    path("",include("apps.processes.urls")),
+
 ]
