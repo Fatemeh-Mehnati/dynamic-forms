@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}ورود و ثبت‌نام با کد یک‌بارمصرف{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <section class="col-12 col-md-8 col-lg-6" aria-labelledby="auth-title">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 id="auth-title" class="h4 mb-4">ورود و ثبت‌نام</h1>
+        {% if user.is_authenticated %}
+          <p class="alert alert-success mb-0">شما با حساب {{ user.username }} وارد شده‌اید.</p>
+        {% else %}
+          <noscript><p class="alert alert-warning">برای درخواست و تأیید کد، JavaScript مرورگر را فعال کنید.</p></noscript>
+          <form id="otp-auth-form" novalidate
+                data-request-url="{% url 'otp-request' %}"
+                data-verify-url="{% url 'otp-verify' %}"
+                data-me-url="{% url 'me' %}">
+            <fieldset id="auth-fields" disabled>
+              <legend class="visually-hidden">اطلاعات ورود یا ثبت‌نام</legend>
+              <div class="mb-3">
+                <label for="auth-purpose" class="form-label">نوع درخواست</label>
+                <select id="auth-purpose" class="form-select" aria-describedby="purpose-error" aria-invalid="false">
+                  <option value="login">ورود</option>
+                  <option value="register">ثبت‌نام</option>
+                </select>
+                <p id="purpose-error" class="text-danger small mt-1" hidden></p>
+              </div>
+              <div class="mb-3">
+                <label for="auth-target" class="form-label">شمارهٔ موبایل</label>
+                <input id="auth-target" class="form-control" type="text" dir="ltr" inputmode="numeric"
+                       autocomplete="tel-national" required aria-invalid="false" aria-describedby="target-help target-error">
+                <p id="target-help" class="form-text">شمارهٔ ۱۱ رقمی با شروع 09 را وارد کنید.</p>
+                <p id="target-error" class="text-danger small mt-1" hidden></p>
+              </div>
+              <div id="username-group" class="mb-3" hidden>
+                <label for="auth-username" class="form-label">نام کاربری</label>
+                <input id="auth-username" class="form-control" type="text" autocomplete="username" maxlength="150"
+                       disabled aria-invalid="false" aria-describedby="username-error">
+                <p id="username-error" class="text-danger small mt-1" hidden></p>
+              </div>
+              <div id="code-group" class="mb-3" hidden>
+                <label for="auth-code" class="form-label">کد یک‌بارمصرف</label>
+                <input id="auth-code" class="form-control" type="text" dir="ltr" inputmode="numeric"
+                       autocomplete="one-time-code" maxlength="10" disabled aria-invalid="false"
+                       aria-describedby="code-error validity-info">
+                <p id="code-error" class="text-danger small mt-1" hidden></p>
+                <p id="validity-info" class="form-text"></p>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button id="auth-submit" class="btn btn-primary" type="submit">درخواست کد</button>
+                <button id="auth-resend" class="btn btn-outline-primary" type="button" hidden>درخواست مجدد کد</button>
+                <button id="auth-edit" class="btn btn-outline-secondary" type="button" hidden>اصلاح شماره یا نوع درخواست</button>
+                <button id="auth-check" class="btn btn-outline-primary" type="button" hidden>بررسی مجدد وضعیت ورود</button>
+              </div>
+            </fieldset>
+          </form>
+          <p id="auth-status" class="mt-3 mb-0" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/web-auth.js' %}"></script>
+{% endblock %}
