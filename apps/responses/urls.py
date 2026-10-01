@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import FormSubmitView
+from .views import FormSubmitView, SubmissionDetailView, SubmissionListView
 
 urlpatterns = [
     path(
@@ -8,5 +8,14 @@ urlpatterns = [
         FormSubmitView.as_view(),
         name="form-submit",
     ),
-    # C4 adds the owner-only list/detail routes here.
+    path(
+        "forms/<int:form_id>/submissions/",
+        SubmissionListView.as_view(),
+        name="submission-list",
+    ),
+    path(
+        "forms/<int:form_id>/submissions/<int:pk>/",
+        SubmissionDetailView.as_view(),
+        name="submission-detail",
+    ),
 ]
