@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Submission
+from .models import Answer, Submission
 
 
 class AnswerInputSerializer(serializers.Serializer):
@@ -26,3 +26,44 @@ class SubmissionCreatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
         fields = ["id", "form", "submitted_at"]
+
+
+class AnswerDetailSerializer(serializers.ModelSerializer):
+    question_text = serializers.CharField(source="question.text", read_only=True)
+    type = serializers.CharField(source="question.type", read_only=True)
+    choices = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Answer
+        fields = [
+            "question",
+            "question_text",
+            "type",
+            "text_value",
+            "number_value",
+            "choices",
+        ]
+
+    def get_choices(self, answer):
+        return [
+            {"id": sc.choice_id, "label": sc.choice.label}
+            for sc in answer.selected_choices.all()
+        ]
+
+
+class SubmissionListSerializer(serializers.ModelSerializer):
+    """Used for the paginated list endpoint: no answers, just metadata."""
+
+    class Meta:
+        model = Submission
+        fields = ["id", "user", "process_run", "submitted_at"]
+
+
+class SubmissionDetailSerializer(serializers.ModelSerializer):
+    """Used for the single-submission endpoint: includes every answer."""
+
+    answers = AnswerDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Submission
+        fields = ["id", "user", "process_run", "submitted_at", "answers"]
