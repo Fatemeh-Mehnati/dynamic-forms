@@ -1,0 +1,26 @@
+{% load static %}
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}فرم‌ها و فرایندهای پویا{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/web-base.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">پرش به محتوای اصلی</a>
+  {% include 'includes/navigation.html' %}
+  <div class="container web-container py-3">
+    {% include 'includes/messages.html' %}
+    <main id="main-content" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <div hidden id="web-csrf-token">{% csrf_token %}</div>
+  {# Synchronous helper loading ensures extra_js can call WebAPI immediately. #}
+  <script src="{% static 'js/api.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
