@@ -1,8 +1,6 @@
 from django.urls import path
 
-from .views import FormReportView
-
-from .views import ProcessReportView
+from .views import FormReportView, ProcessReportView
 
 urlpatterns = [
     path(

@@ -7,11 +7,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.builder.models import Form
+from apps.processes.models import Process
 from apps.responses.models import Answer, AnswerChoice, Submission
 
 from .models import Visit
 
-from apps.processes.models import Process
 
 class FormReportView(APIView):
     """

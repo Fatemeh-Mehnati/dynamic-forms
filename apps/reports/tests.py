@@ -4,15 +4,14 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
+from django.utils import timezone
 
 from apps.builder.models import Form, Question
-from apps.processes.models import Process , ProcessRun , ProcessStep
+from apps.processes.models import Process, ProcessRun, ProcessStep
 from apps.reports.models import Visit
 from apps.reports.services import record_visit
 from apps.reports.views import FormReportView, ProcessReportView
 from apps.responses.models import Answer, Submission
-
-from django.utils import timezone
 
 User = get_user_model()
 
