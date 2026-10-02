@@ -10,6 +10,11 @@ from apps.processes.models import Process
 from apps.reports.models import Visit
 from apps.reports.services import record_visit
 
+from apps.reports.views import FormReportView
+
+from apps.builder.models import Form , Question
+from apps.responses.models import Answer , Submission
+
 
 User = get_user_model()
 
@@ -122,3 +127,130 @@ def test_record_visit_requires_exactly_one_target():
 
     with pytest.raises(ValidationError):
         record_visit(request, form=form, process=Mock())
+
+
+@pytest.mark.django_db
+def test_form_report_owner():
+    user = User.objects.create_user(
+        username="reportowner",
+        email="reportowner@example.com",
+        password="password123",
+    )
+
+    form = Form.objects.create(
+        owner=user,
+        title="Customer Survey",
+        description="Test survey",
+        is_public=True,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/forms/{form.id}/report/",
+    )
+    request.user = user
+
+    response = FormReportView.as_view()(
+        request,
+        form_id=form.id,
+    )
+
+    assert response.status_code == 200
+    assert response.data["form"]["id"] == form.id
+    assert response.data["form"]["title"] == "Customer Survey"
+    assert response.data["summary"]["visits"] == 0
+    assert response.data["summary"]["submissions"] == 0
+
+
+@pytest.mark.django_db
+def test_form_report_number_question():
+    user = User.objects.create_user(
+        username="numberowner",
+        email="numberowner@example.com",
+        password="password123",
+    )
+
+    form = Form.objects.create(
+        owner=user,
+        title="Number Survey",
+        description="Test survey",
+        is_public=True,
+    )
+
+    question = Question.objects.create(
+        form=form,
+        type="number",
+        text="Age",
+        is_required=True,
+        order=1,
+    )
+
+    submission1 = Submission.objects.create(form=form, user=user)
+    submission2 = Submission.objects.create(form=form, user=user)
+
+    Answer.objects.create(
+        submission=submission1,
+        question=question,
+        number_value=20,
+    )
+
+    Answer.objects.create(
+        submission=submission2,
+        question=question,
+        number_value=30,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/forms/{form.id}/report/",
+    )
+    request.user = user
+
+    response = FormReportView.as_view()(
+        request,
+        form_id=form.id,
+    )
+
+    assert response.status_code == 200
+
+    question_report = response.data["questions"][0]
+
+    assert question_report["question_id"] == question.id
+    assert question_report["type"] == "number"
+    assert question_report["responses"] == 2
+
+    assert float(question_report["statistics"]["average"]) == 25
+    assert float(question_report["statistics"]["min"]) == 20
+    assert float(question_report["statistics"]["max"]) == 30
+
+
+@pytest.mark.django_db
+def test_form_report_non_owner_forbidden():
+    owner = User.objects.create_user(
+        username="realowner",
+        email="realowner@example.com",
+        password="password123",
+    )
+
+    other_user = User.objects.create_user(
+        username="otheruser",
+        email="otheruser@example.com",
+        password="password123",
+    )
+
+    form = Form.objects.create(
+        owner=owner,
+        title="Private Report",
+        description="Test survey",
+        is_public=True,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/forms/{form.id}/report/",
+    )
+    request.user = other_user
+
+    response = FormReportView.as_view()(
+        request,
+        form_id=form.id,
+    )
+
+    assert response.status_code == 403
