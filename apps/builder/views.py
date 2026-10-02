@@ -20,7 +20,58 @@ from .token_utils import (
     verify_form_access_token,
 )
 
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema,
+    extend_schema_view,
+)
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List categories",
+        description="Retrieve all categories belonging to the authenticated user.",
+        responses={200: CategorySerializer(many=True)},
+        examples=[
+            OpenApiExample(
+                "Category list response",
+                value=[
+                    {
+                        "id": 1,
+                        "name": "Education",
+                        "created_at": "2026-10-02T10:00:00Z",
+                        "updated_at": "2026-10-02T10:00:00Z",
+                    }
+                ],
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
+    ),
+    post=extend_schema(
+        summary="Create category",
+        description="Create a category for the authenticated user.",
+        request=CategorySerializer,
+        responses={201: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Create category request",
+                value={"name": "Education"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Create category response",
+                value={
+                    "id": 1,
+                    "name": "Education",
+                    "created_at": "2026-10-02T10:00:00Z",
+                    "updated_at": "2026-10-02T10:00:00Z",
+                },
+                response_only=True,
+                status_codes=["201"],
+            ),
+        ],
+    ),
+)
 class CategoryListCreateView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
@@ -34,6 +85,40 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         serializer.save(owner=self.request.user)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Retrieve category",
+        responses={200: CategorySerializer},
+    ),
+    put=extend_schema(
+        summary="Update category",
+        request=CategorySerializer,
+        responses={200: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Update category request",
+                value={"name": "Science"},
+                request_only=True,
+            )
+        ],
+    ),
+    patch=extend_schema(
+        summary="Partially update category",
+        request=CategorySerializer,
+        responses={200: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Partial update request",
+                value={"name": "Science"},
+                request_only=True,
+            )
+        ],
+    ),
+    delete=extend_schema(
+        summary="Delete category",
+        responses={204: None},
+    ),
+)
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
@@ -124,7 +209,19 @@ class QuestionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         instance.choices.filter(is_active=True).update(is_active=False)
 
-
+@extend_schema(
+    summary="Retrieve public form",
+    description="Retrieve a public form or access a private form using a valid token.",
+    responses={
+        200: PublicFormSerializer,
+        403: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"},
+            },
+        },
+    },
+)
 class PublicFormView(APIView):
     permission_classes = [AllowAny]
 
@@ -147,6 +244,21 @@ class PublicFormView(APIView):
 class PrivateFormAccessView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Access private form",
+        request=None,
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "access_token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                },
+            },
+            400: {"type": "object"},
+            403: {"type": "object"},
+        },
+    )
     def post(self, request, slug):
         form = get_object_or_404(Form, slug=slug)
 
