@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.builder.models import Form
+from apps.responses.serializers import SubmissionCreatedSerializer
 
 from .models import Process, ProcessStep
 
@@ -93,3 +94,33 @@ class StepReorderSerializer(serializers.Serializer):
     order = serializers.ListField(
         child=serializers.IntegerField(), allow_empty=False
     )
+
+
+class RunStepSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    form = serializers.IntegerField()
+    order = serializers.IntegerField()
+    state = serializers.ChoiceField(choices=["done", "available", "locked"])
+
+
+class RunStartSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    respondent_token = serializers.CharField()
+    status = RunStepSerializer(many=True)
+
+
+class RunStatusSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    completed_at = serializers.DateTimeField(allow_null=True)
+    steps = RunStepSerializer(many=True)
+
+
+class StepSubmitResultSerializer(SubmissionCreatedSerializer):
+    """Same as the form-submit response, plus the run's completion time."""
+
+    completed_at = serializers.DateTimeField(
+        source="process_run.completed_at", read_only=True, allow_null=True
+    )
+
+    class Meta(SubmissionCreatedSerializer.Meta):
+        fields = SubmissionCreatedSerializer.Meta.fields + ["completed_at"]
