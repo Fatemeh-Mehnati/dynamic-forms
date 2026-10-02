@@ -1,4 +1,4 @@
-/* E3 reads processes and one category page at a time; forms remain unavailable.
+/* E3 reads forms, processes and one shared category page at a time.
  * The input is a draft; applied.search/category/page describe the current request.
  * Pagination URLs are validated then rebuilt, never forwarded blindly.
  */
@@ -18,11 +18,17 @@
   const categoryPanel = get("categories-panel");
   let endpoint, applied = { search: "", category: null, page: 1 };
   let draftCategory = null, appliedCategory = null;
-  // Retain only the current category page and the two selections, never all pages.
+  // Retain only the current category page and the four selections, never all pages.
   let categoryRows = [], categoryLabels = [];
   const categories = {
     endpoint: null, page: 1, valid: false, pending: false, generation: 0,
     controller: null, previous: null, next: null,
+  };
+  const formsPanel = get("forms-panel");
+  const forms = {
+    endpoint: null, query: { search: "", category: null, page: 1 },
+    draft: null, applied: null, labels: [],
+    generation: 0, controller: null, pending: false, previous: null, next: null,
   };
   let generation = 0, controller = null, pending = false, needsLogin = false;
   let previousPage = null, nextPage = null;
@@ -222,7 +228,9 @@
   function knownCategory(id) {
     return categoryRows.find((row) => row.id === id)
       || (draftCategory?.id === id ? draftCategory : null)
-      || (appliedCategory?.id === id ? appliedCategory : null);
+      || (appliedCategory?.id === id ? appliedCategory : null)
+      || (forms.draft?.id === id ? forms.draft : null)
+      || (forms.applied?.id === id ? forms.applied : null);
   }
 
   function categoryName(id) {
@@ -231,18 +239,23 @@
 
   function rebuildOptions() {
     const options = new Map(categoryRows.map((row) => [row.id, row]));
-    for (const row of [draftCategory, appliedCategory]) if (row && !options.has(row.id)) options.set(row.id, row);
-    select.replaceChildren();
-    const all = element("option", "", "همهٔ دسته‌ها");
-    all.value = "";
-    select.append(all);
-    for (const row of options.values()) {
-      const option = element("option", "", row.name);
-      option.value = String(row.id);
-      select.append(option);
+    for (const row of [draftCategory, appliedCategory, forms.draft, forms.applied]) {
+      if (row && !options.has(row.id)) options.set(row.id, row);
     }
-    select.value = draftCategory ? String(draftCategory.id) : "";
-    for (const label of categoryLabels) label.node.textContent = categoryName(label.id);
+    for (const [control, selected] of [[select, draftCategory], [get("form-category"), forms.draft]]) {
+      if (!control) continue;
+      control.replaceChildren();
+      const all = element("option", "", "همهٔ دسته‌ها");
+      all.value = "";
+      control.append(all);
+      for (const row of options.values()) {
+        const option = element("option", "", row.name);
+        option.value = String(row.id);
+        control.append(option);
+      }
+      control.value = selected ? String(selected.id) : "";
+    }
+    for (const label of [...categoryLabels, ...forms.labels]) label.node.textContent = categoryName(label.id);
   }
 
   function categoryControls() {
@@ -268,8 +281,22 @@
     needsLogin = true;
     ++generation;
     ++categories.generation;
+    ++forms.generation;
     controller?.abort();
     categories.controller?.abort();
+    forms.controller?.abort();
+    forms.controller = null;
+    forms.pending = false;
+    forms.draft = forms.applied = null;
+    forms.query = { search: "", category: null, page: 1 };
+    if (formsPanel) {
+      clearForms();
+      get("form-search").value = "";
+      get("form-retry").hidden = true;
+      api.clearError(get("form-errors"));
+      get("form-status").textContent = "برای مشاهدهٔ فرم‌ها باید دوباره وارد حساب شوید.";
+      formControls();
+    }
     controller = categories.controller = null;
     pending = categories.pending = false;
     input.value = "";
@@ -322,6 +349,8 @@
       for (const row of rows) {
         if (draftCategory?.id === row.id) draftCategory = row;
         if (appliedCategory?.id === row.id) appliedCategory = row;
+        if (forms.draft?.id === row.id) forms.draft = row;
+        if (forms.applied?.id === row.id) forms.applied = row;
         get("category-results").append(element("li", "list-group-item", row.name));
       }
       categories.previous = before;
@@ -349,6 +378,136 @@
         if (focus) get("category-status").focus();
       }
     }
+  }
+
+  function formControls() {
+    if (!formsPanel) return;
+    formsPanel.setAttribute("aria-busy", String(forms.pending));
+    for (const id of ["form-search", "form-category", "form-apply", "form-clear"]) get(id).disabled = needsLogin;
+    get("form-previous").disabled = needsLogin || forms.pending || forms.previous === null;
+    get("form-next").disabled = needsLogin || forms.pending || forms.next === null;
+    get("form-retry").disabled = needsLogin || forms.pending;
+  }
+
+  function clearForms() {
+    get("form-results").replaceChildren();
+    get("form-count").textContent = "";
+    get("form-count").hidden = true;
+    get("form-page").textContent = "";
+    forms.labels = [];
+    forms.previous = forms.next = null;
+  }
+
+  async function loadForms(query, focus = false) {
+    if (needsLogin || (forms.pending && query.search === forms.query.search
+        && query.category === forms.query.category && query.page === forms.query.page)) return;
+    const ticket = ++forms.generation;
+    forms.controller?.abort();
+    forms.controller = new AbortController();
+    forms.query = { ...query };
+    forms.applied = query.category === null ? null : knownCategory(query.category);
+    rebuildOptions();
+    forms.pending = true;
+    clearForms();
+    api.clearError(get("form-errors"));
+    get("form-retry").hidden = true;
+    get("form-status").textContent = "در حال دریافت فرم‌ها…";
+    formControls();
+    try {
+      const url = new URL(forms.endpoint.href);
+      if (query.search) url.searchParams.set("search", query.search);
+      if (query.category !== null) url.searchParams.set("category", String(query.category));
+      url.searchParams.set("page", String(query.page));
+      const data = await api.request(url.href, { method: "GET", signal: forms.controller.signal });
+      if (ticket !== forms.generation || needsLogin) return;
+      if (!data || !Array.isArray(data.results) || !Number.isSafeInteger(data.count)
+          || data.count < data.results.length || (data.count > 0 && data.results.length === 0)) throw invalid();
+      const before = paginationPage(data.previous, query, forms.endpoint);
+      const after = paginationPage(data.next, query, forms.endpoint);
+      // Validate all consumed fields before displaying any row; ignore slug/response_url.
+      const rows = data.results.map((row) => {
+        if (!row || !positiveInteger(row.id) || typeof row.title !== "string"
+            || typeof row.description !== "string" || typeof row.is_public !== "boolean"
+            || !(row.category === null || positiveInteger(row.category))) throw invalid();
+        return {
+          title: row.title, description: row.description, is_public: row.is_public,
+          category: row.category, created: readableDate(row.created_at), updated: readableDate(row.updated_at),
+        };
+      });
+      for (const row of rows) {
+        const item = element("li", "col-12");
+        const card = element("article", "border rounded p-3");
+        card.append(element("h3", "h6", row.title));
+        if (row.description.trim()) card.append(element("p", "mb-2", row.description));
+        card.append(element("p", "small mb-2", row.is_public ? "عمومی" : "خصوصی"));
+        const label = element("p", "small text-secondary mb-2", categoryName(row.category));
+        forms.labels.push({ id: row.category, node: label });
+        card.append(label);
+        card.append(element("p", "small text-secondary mb-1", `ایجاد: ${row.created}`));
+        card.append(element("p", "small text-secondary mb-0", `ویرایش: ${row.updated}`));
+        item.append(card);
+        get("form-results").append(item);
+      }
+      forms.previous = before;
+      forms.next = after;
+      const filtered = Boolean(query.search) || query.category !== null;
+      get("form-count").textContent = `تعداد کل ${filtered ? "نتایج فیلتر" : "فرم‌ها"}: ${data.count}`;
+      get("form-count").hidden = false;
+      get("form-page").textContent = `صفحهٔ ${query.page}`;
+      get("form-status").textContent = rows.length ? "فهرست فرم‌ها دریافت شد."
+        : filtered ? "نتیجه‌ای برای فیلتر اعمال‌شده پیدا نشد." : "هنوز فرمی ندارید.";
+    } catch (error) {
+      if (ticket !== forms.generation || needsLogin) return;
+      clearForms();
+      if (error.status === 401) requireLogin(focus ? get("form-status") : null);
+      else if (error.kind !== "abort") {
+        get("form-status").textContent = "بارگذاری فرم‌ها ناموفق بود.";
+        api.showError({ message: error.status === 403 ? "اجازهٔ مشاهدهٔ فرم‌ها را ندارید."
+          : error.status === 429 ? "درخواست‌ها محدود شده‌اند؛ کمی بعد دوباره تلاش کنید." : error.message }, get("form-errors"));
+        get("form-retry").hidden = false;
+      }
+    } finally {
+      if (ticket === forms.generation && !needsLogin) {
+        forms.pending = false;
+        forms.controller = null;
+        formControls();
+        if (focus) get("form-status").focus();
+      }
+    }
+  }
+
+  if (formsPanel) {
+    get("form-category").addEventListener("change", () => {
+      forms.draft = get("form-category").value === "" ? null : knownCategory(Number(get("form-category").value));
+      rebuildOptions();
+    });
+    get("form-search-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const value = get("form-category").value;
+      const selected = value === "" ? null : knownCategory(Number(value));
+      if (value !== "" && (!selected || String(selected.id) !== value)) {
+        api.showError({ message: "دسته را از گزینه‌های دریافت‌شده انتخاب کنید." }, get("form-errors"));
+        get("form-category").focus();
+        return;
+      }
+      forms.draft = selected;
+      loadForms({ search: get("form-search").value.trim(), category: selected?.id ?? null, page: 1 }, true);
+    });
+    get("form-clear").addEventListener("click", () => {
+      get("form-search").value = "";
+      forms.draft = null;
+      rebuildOptions();
+      loadForms({ search: "", category: null, page: 1 }, true);
+    });
+    get("form-previous").addEventListener("click", () => {
+      if (!get("form-previous").disabled) loadForms({ ...forms.query, page: forms.previous }, true);
+    });
+    get("form-next").addEventListener("click", () => {
+      if (!get("form-next").disabled) loadForms({ ...forms.query, page: forms.next }, true);
+    });
+    get("form-retry").addEventListener("click", () => {
+      if (!get("form-retry").disabled && !get("form-retry").hidden) loadForms(forms.query, true);
+    });
   }
 
   select.addEventListener("change", () => {
@@ -386,4 +545,14 @@
     api.showError(error, errors);
     status.textContent = "فهرست در دسترس نیست.";
   }
+  if (formsPanel) {
+    try {
+      forms.endpoint = endpointURL(formsPanel.dataset.listUrl);
+      loadForms(forms.query);
+    } catch (error) {
+      api.showError(error, get("form-errors"));
+      get("form-status").textContent = "فرم‌ها در دسترس نیستند.";
+    }
+  }
+
 })();
