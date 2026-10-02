@@ -3,17 +3,29 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
-from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Process, ProcessStep
+from apps.responses.serializers import SubmissionCreateSerializer
+
+from .models import Process, ProcessRun, ProcessStep
 from .serializers import (
     ProcessSerializer,
     ProcessStepSerializer,
+    RunStartSerializer,
+    RunStatusSerializer,
     StepCreateSerializer,
     StepReorderSerializer,
+    StepSubmitResultSerializer,
+)
+from .services import (
+    get_run_steps,
+    serialize_steps,
+    start_run,
+    submit_step,
+    track_visit,
 )
 
 
@@ -116,3 +128,87 @@ class ProcessStepReorderView(APIView):
 
         ordered = ProcessStep.objects.filter(process=process).order_by("order")
         return Response(ProcessStepSerializer(ordered, many=True).data)
+
+# --- C6: running a process (public) -------------------------------------------
+
+
+def has_private_process_access(process, request):
+    """Can this request start a run of a private process?
+
+    TODO(B6): verify the short-lived access token (TimestampSigner), the same
+    mechanism as has_private_access() in apps/responses/views.py.
+    Until then, private processes reject every request.
+    """
+    return False
+
+
+def get_run_or_404(slug, token):
+    return get_object_or_404(
+        ProcessRun.objects.select_related("process"),
+        respondent_token=token,
+        process__slug=slug,
+    )
+
+
+class ProcessRunStartView(APIView):
+    """Start a run of a process (logged-in or anonymous)."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=None, responses={201: RunStartSerializer})
+    def post(self, request, slug):
+        process = get_object_or_404(Process, slug=slug)
+        if not process.is_public and not has_private_process_access(process, request):
+            raise PermissionDenied("This process is private.")
+
+        user = request.user if request.user.is_authenticated else None
+        run = start_run(process, user=user)
+        track_visit(request, process)
+
+        data = {
+            "id": run.id,
+            "respondent_token": run.respondent_token,
+            "status": serialize_steps(get_run_steps(run)),
+        }
+        return Response(RunStartSerializer(data).data, status=status.HTTP_201_CREATED)
+
+
+class ProcessRunStatusView(APIView):
+    """State of every step of a run. The respondent token is the credential."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses={200: RunStatusSerializer})
+    def get(self, request, slug, token):
+        run = get_run_or_404(slug, token)
+        data = {
+            "id": run.id,
+            "completed_at": run.completed_at,
+            "steps": serialize_steps(get_run_steps(run)),
+        }
+        return Response(RunStatusSerializer(data).data)
+
+
+class ProcessRunStepSubmitView(APIView):
+    """Submit the answers of one step. Same body as the form-submit API."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request=SubmissionCreateSerializer,
+        responses={201: StepSubmitResultSerializer},
+    )
+    def post(self, request, slug, token, step_id):
+        run = get_run_or_404(slug, token)
+
+        serializer = SubmissionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user if request.user.is_authenticated else None
+        submission, _run = submit_step(
+            run, step_id, serializer.validated_data["answers"], user=user
+        )
+        return Response(
+            StepSubmitResultSerializer(submission).data,
+            status=status.HTTP_201_CREATED,
+        )
