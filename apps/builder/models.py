@@ -119,7 +119,7 @@ class Choice(models.Model):
     is_active = models.BooleanField(default=True)
 
     objects = ActiveManager()
-    al_objects = models.Manager()
+    all_objects = models.Manager()
 
     def __str__(self):
         return self.label

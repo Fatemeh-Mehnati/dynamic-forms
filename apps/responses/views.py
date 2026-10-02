@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.builder.models import Form
+from apps.builder.token_utils import verify_form_access_token
 
 from .models import Submission
 from .serializers import (
@@ -19,13 +20,8 @@ from .services import submit_form
 
 
 def has_private_access(form, request):
-    """Can this request submit to a private form?
-
-    TODO(B6): verify the short-lived access token issued by the public-form API
-    (TimestampSigner) here, e.g. from the X-Form-Access-Token header.
-    Until B6 is merged, private forms reject every submission.
-    """
-    return False
+    token = request.headers.get("X-Form-Access-Token")
+    return verify_form_access_token(form, token)
 
 
 class FormSubmitView(APIView):

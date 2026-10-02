@@ -2,14 +2,15 @@ from unittest.mock import Mock
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
+from django.utils import timezone
 
 from apps.builder.models import Form, Question
-from apps.processes.models import Process
+from apps.processes.models import Process, ProcessRun, ProcessStep
+from apps.reports.models import Visit
 from apps.reports.services import record_visit
-from apps.reports.views import FormReportView
+from apps.reports.views import FormReportView, ProcessReportView
 from apps.responses.models import Answer, Submission
 
 User = get_user_model()
@@ -253,88 +254,238 @@ def test_form_report_non_owner_forbidden():
 
 
 @pytest.mark.django_db
-def test_form_report_cache_is_invalidated_on_submission():
+def test_process_report_owner():
     user = User.objects.create_user(
-        username="cacheowner",
-        email="cacheowner@example.com",
+        username="processowner",
+        email="processowner@example.com",
         password="password123",
+    )
+
+    process = Process.objects.create(
+        owner=user,
+        title="Onboarding",
+        description="Test process",
+        is_public=True,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/processes/{process.id}/report/",
+    )
+    request.user = user
+
+    response = ProcessReportView.as_view()(
+        request,
+        process_id=process.id,
+    )
+
+    assert response.status_code == 200
+    assert response.data["process"]["id"] == process.id
+    assert response.data["process"]["title"] == "Onboarding"
+    assert response.data["summary"]["visits"] == 0
+    assert response.data["summary"]["runs_started"] == 0
+    assert response.data["summary"]["runs_completed"] == 0
+    assert response.data["steps"] == []
+
+
+@pytest.mark.django_db
+def test_process_report_runs_and_visits():
+    user = User.objects.create_user(
+        username="runowner",
+        email="runowner@example.com",
+        password="password123",
+    )
+
+    process = Process.objects.create(
+        owner=user,
+        title="Process Report",
+        is_public=True,
     )
 
     form = Form.objects.create(
         owner=user,
-        title="Cached Report",
-        description="Cache test",
+        title="Step Form",
+        description="Test form",
         is_public=True,
     )
 
-    cache_key = f"report:form:{form.id}"
+    ProcessStep.objects.create(
+        process=process,
+        form=form,
+        order=1,
+    )
 
-    cached_data = {
-        "form": {
-            "id": form.id,
-            "title": form.title,
-        },
-        "summary": {
-            "visits": 0,
-            "submissions": 0,
-        },
-        "questions": [],
-    }
+    Visit.objects.create(
+        process=process,
+        ip="127.0.0.1",
+    )
 
-    cache.set(cache_key, cached_data, 300)
+    Visit.objects.create(
+        process=process,
+        ip="127.0.0.2",
+    )
 
-    assert cache.get(cache_key) == cached_data
+    ProcessRun.objects.create(process=process)
+    ProcessRun.objects.create(process=process)
+
+    completed_run = ProcessRun.objects.create(process=process)
+    completed_run.completed_at = timezone.now()
+    completed_run.save(update_fields=["completed_at"])
+
+    request = RequestFactory().get(
+        f"/api/v1/processes/{process.id}/report/",
+    )
+    request.user = user
+
+    response = ProcessReportView.as_view()(
+        request,
+        process_id=process.id,
+    )
+
+    assert response.status_code == 200
+    assert response.data["summary"]["visits"] == 2
+    assert response.data["summary"]["runs_started"] == 3
+    assert response.data["summary"]["runs_completed"] == 1
+
+
+@pytest.mark.django_db
+def test_process_report_step_completion():
+    user = User.objects.create_user(
+        username="stepowner",
+        email="stepowner@example.com",
+        password="password123",
+    )
+
+    process = Process.objects.create(
+        owner=user,
+        title="Step Report",
+        is_public=True,
+    )
+
+    form = Form.objects.create(
+        owner=user,
+        title="Step Form",
+        description="Test form",
+        is_public=True,
+    )
+
+    step = ProcessStep.objects.create(
+        process=process,
+        form=form,
+        order=1,
+    )
+
+    run1 = ProcessRun.objects.create(process=process)
+    run2 = ProcessRun.objects.create(process=process)
+    ProcessRun.objects.create(process=process)
+    ProcessRun.objects.create(process=process)
 
     Submission.objects.create(
         form=form,
         user=user,
+        process_run=run1,
     )
 
-    assert cache.get(cache_key) is None
+    Submission.objects.create(
+        form=form,
+        user=user,
+        process_run=run2,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/processes/{process.id}/report/",
+    )
+    request.user = user
+
+    response = ProcessReportView.as_view()(
+        request,
+        process_id=process.id,
+    )
+
+    assert response.status_code == 200
+
+    step_report = response.data["steps"][0]
+
+    assert step_report["step_id"] == step.id
+    assert step_report["form_id"] == form.id
+    assert step_report["order"] == 1
+    assert step_report["submissions"] == 2
+    assert step_report["completion_percentage"] == 50.0
 
 
 @pytest.mark.django_db
-def test_form_report_uses_cache():
-    user = User.objects.create_user(
-        username="cacheviewowner",
-        email="cacheviewowner@example.com",
+def test_process_report_non_owner_forbidden():
+    owner = User.objects.create_user(
+        username="processrealowner",
+        email="processrealowner@example.com",
         password="password123",
+    )
+
+    other_user = User.objects.create_user(
+        username="processotheruser",
+        email="processotheruser@example.com",
+        password="password123",
+    )
+
+    process = Process.objects.create(
+        owner=owner,
+        title="Private Process Report",
+        is_public=True,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/processes/{process.id}/report/",
+    )
+    request.user = other_user
+
+    response = ProcessReportView.as_view()(
+        request,
+        process_id=process.id,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_process_report_zero_runs_has_zero_completion():
+    user = User.objects.create_user(
+        username="zeroruns",
+        email="zeroruns@example.com",
+        password="password123",
+    )
+
+    process = Process.objects.create(
+        owner=user,
+        title="Zero Runs",
+        is_public=True,
     )
 
     form = Form.objects.create(
         owner=user,
-        title="Original Title",
-        description="Cache view test",
+        title="Empty Step",
+        description="Test form",
         is_public=True,
     )
 
-    cached_report = {
-        "form": {
-            "id": form.id,
-            "title": "Cached Title",
-        },
-        "summary": {
-            "visits": 99,
-            "submissions": 88,
-        },
-        "questions": [],
-    }
-
-    cache.set(
-        f"report:form:{form.id}",
-        cached_report,
-        300,
+    step = ProcessStep.objects.create(
+        process=process,
+        form=form,
+        order=1,
     )
 
     request = RequestFactory().get(
-        f"/api/v1/forms/{form.id}/report/",
+        f"/api/v1/processes/{process.id}/report/",
     )
     request.user = user
 
-    response = FormReportView.as_view()(
+    response = ProcessReportView.as_view()(
         request,
-        form_id=form.id,
+        process_id=process.id,
     )
 
     assert response.status_code == 200
-    assert response.data == cached_report
+
+    step_report = response.data["steps"][0]
+
+    assert step_report["step_id"] == step.id
+    assert step_report["submissions"] == 0
+    assert step_report["completion_percentage"] == 0
