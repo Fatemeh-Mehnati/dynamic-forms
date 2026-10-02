@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Category, Choice, Form, Question
@@ -247,6 +248,7 @@ class FormSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "slug", "created_at", "updated_at"]
 
+    @extend_schema_field(serializers.CharField())
     def get_response_url(self, obj):
         return f"/api/v1/public/forms/{obj.slug}/submissions/"
 
@@ -314,6 +316,7 @@ class PublicQuestionSerializer(serializers.ModelSerializer):
             "choices",
         ]
 
+    @extend_schema_field(PublicChoiceSerializer(many=True))
     def get_choices(self, obj):
         if obj.type not in [Question.TYPE_SELECT, Question.TYPE_CHECKBOX]:
             return []
@@ -333,6 +336,10 @@ class PublicFormSerializer(serializers.ModelSerializer):
             "questions",
         ]
 
+    @extend_schema_field(PublicQuestionSerializer(many=True))
     def get_questions(self, obj):
         questions = obj.questions.filter(is_active=True).order_by("order", "id")
         return PublicQuestionSerializer(questions, many=True).data
+
+class PrivateFormAccessSerializer(serializers.Serializer):
+    password = serializers.CharField()

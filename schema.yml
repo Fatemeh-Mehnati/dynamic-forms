@@ -1,0 +1,2140 @@
+openapi: 3.0.3
+info:
+  title: Dynamic Forms API
+  version: 1.0.0
+  description: API for creating and managing dynamic forms and processes.
+paths:
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Logout'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/me/:
+    get:
+      operationId: v1_auth_me_retrieve
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    patch:
+      operationId: v1_auth_me_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/otp/request/:
+    post:
+      operationId: v1_auth_otp_request_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OTPRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OTPRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OTPRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/otp/verify/:
+    post:
+      operationId: v1_auth_otp_verify_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OTPVerify'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/categories/:
+    get:
+      operationId: v1_categories_list
+      description: Retrieve all categories belonging to the authenticated user.
+      summary: List categories
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoryList'
+              examples:
+                CategoryListResponse:
+                  value:
+                    count: 123
+                    next: http://api.example.org/accounts/?page=4
+                    previous: http://api.example.org/accounts/?page=2
+                    results:
+                    - - id: 1
+                        name: Education
+                        created_at: '2026-10-02T10:00:00Z'
+                        updated_at: '2026-10-02T10:00:00Z'
+                  summary: Category list response
+          description: ''
+    post:
+      operationId: v1_categories_create
+      description: Create a category for the authenticated user.
+      summary: Create category
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+            examples:
+              CreateCategoryRequest:
+                value:
+                  name: Education
+                summary: Create category request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Category'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Category'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+              examples:
+                CreateCategoryResponse:
+                  value:
+                    id: 1
+                    name: Education
+                    created_at: '2026-10-02T10:00:00Z'
+                    updated_at: '2026-10-02T10:00:00Z'
+                  summary: Create category response
+          description: ''
+  /api/v1/categories/{id}/:
+    get:
+      operationId: v1_categories_retrieve
+      summary: Retrieve category
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    put:
+      operationId: v1_categories_update
+      summary: Update category
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+            examples:
+              UpdateCategoryRequest:
+                value:
+                  name: Science
+                summary: Update category request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Category'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Category'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    patch:
+      operationId: v1_categories_partial_update
+      summary: Partially update category
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCategory'
+            examples:
+              PartialUpdateRequest:
+                value:
+                  name: Science
+                summary: Partial update request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCategory'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCategory'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    delete:
+      operationId: v1_categories_destroy
+      summary: Delete category
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/forms/:
+    get:
+      operationId: v1_forms_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFormList'
+          description: ''
+    post:
+      operationId: v1_forms_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+  /api/v1/forms/{form_id}/questions/:
+    get:
+      operationId: v1_forms_questions_list
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedQuestionList'
+          description: ''
+    post:
+      operationId: v1_forms_questions_create
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Question'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Question'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Question'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+  /api/v1/forms/{form_id}/questions/{question_id}/:
+    get:
+      operationId: v1_forms_questions_retrieve
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: question_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    put:
+      operationId: v1_forms_questions_update
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: question_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Question'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Question'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Question'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    patch:
+      operationId: v1_forms_questions_partial_update
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: question_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedQuestion'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+          description: ''
+    delete:
+      operationId: v1_forms_questions_destroy
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: question_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/forms/{form_id}/report/:
+    get:
+      operationId: v1_forms_report_retrieve
+      description: |-
+        Return aggregated report data for a form.
+
+        Only the form owner can access the report.
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/forms/{form_id}/submissions/:
+    get:
+      operationId: v1_forms_submissions_list
+      description: Paginated list of submissions for a form, owner only.
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubmissionListList'
+          description: ''
+  /api/v1/forms/{form_id}/submissions/{id}/:
+    get:
+      operationId: v1_forms_submissions_retrieve
+      description: A single submission with its answers, owner only.
+      parameters:
+      - in: path
+        name: form_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionDetail'
+          description: ''
+  /api/v1/forms/{id}/:
+    get:
+      operationId: v1_forms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    put:
+      operationId: v1_forms_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Form'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Form'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    patch:
+      operationId: v1_forms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedForm'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form'
+          description: ''
+    delete:
+      operationId: v1_forms_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/health/:
+    get:
+      operationId: v1_health_retrieve
+      description: Public endpoint to check that the API is up.
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/processes/:
+    get:
+      operationId: v1_processes_list
+      description: 'List the user''s own processes (filter: category, search) and
+        create new ones.'
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProcessList'
+          description: ''
+    post:
+      operationId: v1_processes_create
+      description: 'List the user''s own processes (filter: category, search) and
+        create new ones.'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Process'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Process'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Process'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Process'
+          description: ''
+  /api/v1/processes/{id}/:
+    get:
+      operationId: v1_processes_retrieve
+      description: Retrieve, partially update, or delete a process. Owner only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Process'
+          description: ''
+    patch:
+      operationId: v1_processes_partial_update
+      description: Retrieve, partially update, or delete a process. Owner only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProcess'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProcess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProcess'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Process'
+          description: ''
+    delete:
+      operationId: v1_processes_destroy
+      description: Retrieve, partially update, or delete a process. Owner only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/processes/{process_id}/steps/:
+    post:
+      operationId: v1_processes_steps_create
+      description: Append a step to the end of a process. Owner only; form must be
+        the user's own.
+      parameters:
+      - in: path
+        name: process_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StepCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StepCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StepCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessStep'
+          description: ''
+  /api/v1/processes/{process_id}/steps/{step_id}/:
+    delete:
+      operationId: v1_processes_steps_destroy
+      description: Remove one step from a process. Owner only.
+      parameters:
+      - in: path
+        name: process_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: step_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/processes/{process_id}/steps/reorder/:
+    post:
+      operationId: v1_processes_steps_reorder_create
+      description: Reassign step order from a full list of step ids (new order, first
+        to last).
+      parameters:
+      - in: path
+        name: process_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StepReorder'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StepReorder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StepReorder'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProcessStep'
+          description: ''
+  /api/v1/public/forms/{slug}/:
+    get:
+      operationId: v1_public_forms_retrieve
+      description: Retrieve a public form or access a private form using a valid token.
+      summary: Access private form
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+              examples:
+                SuccessfulAccessResponse:
+                  value:
+                    access_token: example-access-token
+                    token_type: Bearer
+                  summary: Successful access response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                PublicFormError:
+                  value:
+                    detail: This form is public.
+                  summary: Public form error
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                InvalidPasswordError:
+                  value:
+                    detail: Invalid password.
+                  summary: Invalid password error
+          description: ''
+  /api/v1/public/forms/{slug}/access/:
+    post:
+      operationId: v1_public_forms_access_create
+      summary: Access private form
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+            examples:
+              AccessPrivateFormRequest:
+                value:
+                  password: secure-password
+                summary: Access private form request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+              examples:
+                SuccessfulAccessResponse:
+                  value:
+                    access_token: example-access-token
+                    token_type: Bearer
+                  summary: Successful access response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                PublicFormError:
+                  value:
+                    detail: This form is public.
+                  summary: Public form error
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                InvalidPasswordError:
+                  value:
+                    detail: Invalid password.
+                  summary: Invalid password error
+          description: ''
+  /api/v1/public/forms/{slug}/submissions/:
+    post:
+      operationId: v1_public_forms_submissions_create
+      description: Submit answers to a form (public forms, or private forms with a
+        token).
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionCreated'
+          description: ''
+  /api/v1/public/processes/{slug}/runs/:
+    post:
+      operationId: v1_public_processes_runs_create
+      description: Start a run of a process (logged-in or anonymous).
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunStart'
+          description: ''
+  /api/v1/public/processes/{slug}/runs/{token}/:
+    get:
+      operationId: v1_public_processes_runs_retrieve
+      description: State of every step of a run. The respondent token is the credential.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunStatus'
+          description: ''
+  /api/v1/public/processes/{slug}/runs/{token}/steps/{step_id}/submit/:
+    post:
+      operationId: v1_public_processes_runs_steps_submit_create
+      description: Submit the answers of one step. Same body as the form-submit API.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: step_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepSubmitResult'
+          description: ''
+  /api/v1/whoami/:
+    get:
+      operationId: v1_whoami_retrieve
+      description: Returns the current user and which auth method was used (JWT or
+        session).
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    AnswerDetail:
+      type: object
+      properties:
+        question:
+          type: integer
+        question_text:
+          type: string
+          readOnly: true
+        type:
+          type: string
+          readOnly: true
+        text_value:
+          type: string
+          nullable: true
+        number_value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,6})?$
+          nullable: true
+        choices:
+          type: string
+          readOnly: true
+      required:
+      - choices
+      - question
+      - question_text
+      - type
+    AnswerInput:
+      type: object
+      properties:
+        question:
+          type: integer
+        text:
+          type: string
+          nullable: true
+        number:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,6})?$
+          nullable: true
+        choices:
+          type: array
+          items:
+            type: integer
+      required:
+      - question
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    Choice:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+          maxLength: 255
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - label
+      - order
+    Form:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          type: integer
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        is_public:
+          type: boolean
+        password:
+          type: string
+          writeOnly: true
+        response_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - response_url
+      - slug
+      - title
+      - updated_at
+    Logout:
+      type: object
+      properties:
+        refresh:
+          type: string
+    Me:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+          title: Email address
+        phone:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - email
+      - id
+      - phone
+      - username
+    ModeEnum:
+      enum:
+      - linear
+      - free
+      type: string
+      description: |-
+        * `linear` - Linear
+        * `free` - Free
+    OTPRequest:
+      type: object
+      properties:
+        target:
+          type: string
+          maxLength: 254
+        purpose:
+          $ref: '#/components/schemas/PurposeEnum'
+      required:
+      - purpose
+      - target
+    OTPVerify:
+      type: object
+      properties:
+        target:
+          type: string
+          maxLength: 254
+        purpose:
+          $ref: '#/components/schemas/PurposeEnum'
+        code:
+          type: string
+          maxLength: 10
+          pattern: ^\d+$
+        username:
+          type: string
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+      required:
+      - code
+      - purpose
+      - target
+    PaginatedCategoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    PaginatedFormList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Form'
+    PaginatedProcessList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Process'
+    PaginatedQuestionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+    PaginatedSubmissionListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionList'
+    PatchedCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedForm:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          type: integer
+          nullable: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        is_public:
+          type: boolean
+        password:
+          type: string
+          writeOnly: true
+        response_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedMe:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+          title: Email address
+        phone:
+          type: string
+          readOnly: true
+          nullable: true
+    PatchedProcess:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        is_public:
+          type: boolean
+        category:
+          type: integer
+          nullable: true
+        password:
+          type: string
+          writeOnly: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessStep'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form:
+          type: integer
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        text:
+          type: string
+          maxLength: 255
+        is_required:
+          type: boolean
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        config: {}
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Choice'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PrivateFormAccess:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+      - password
+    Process:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        is_public:
+          type: boolean
+        category:
+          type: integer
+          nullable: true
+        password:
+          type: string
+          writeOnly: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessStep'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - slug
+      - steps
+      - title
+      - updated_at
+    ProcessStep:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form:
+          type: integer
+        order:
+          type: integer
+          readOnly: true
+      required:
+      - form
+      - id
+      - order
+    PurposeEnum:
+      enum:
+      - login
+      - register
+      type: string
+      description: |-
+        * `login` - Login
+        * `register` - Register
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form:
+          type: integer
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        text:
+          type: string
+          maxLength: 255
+        is_required:
+          type: boolean
+        order:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        config: {}
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Choice'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - form
+      - id
+      - order
+      - text
+      - type
+      - updated_at
+    RunStart:
+      type: object
+      properties:
+        id:
+          type: integer
+        respondent_token:
+          type: string
+        status:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunStep'
+      required:
+      - id
+      - respondent_token
+      - status
+    RunStatus:
+      type: object
+      properties:
+        id:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunStep'
+      required:
+      - completed_at
+      - id
+      - steps
+    RunStep:
+      type: object
+      properties:
+        id:
+          type: integer
+        form:
+          type: integer
+        order:
+          type: integer
+        state:
+          $ref: '#/components/schemas/StateEnum'
+      required:
+      - form
+      - id
+      - order
+      - state
+    StateEnum:
+      enum:
+      - done
+      - available
+      - locked
+      type: string
+      description: |-
+        * `done` - done
+        * `available` - available
+        * `locked` - locked
+    StepCreate:
+      type: object
+      properties:
+        form:
+          type: integer
+      required:
+      - form
+    StepReorder:
+      type: object
+      properties:
+        order:
+          type: array
+          items:
+            type: integer
+      required:
+      - order
+    StepSubmitResult:
+      type: object
+      description: Same as the form-submit response, plus the run's completion time.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form:
+          type: string
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - completed_at
+      - form
+      - id
+      - submitted_at
+    SubmissionCreate:
+      type: object
+      description: Only checks the shape of the input. Business rules live in services.py.
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerInput'
+      required:
+      - answers
+    SubmissionCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        form:
+          type: string
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - form
+      - id
+      - submitted_at
+    SubmissionDetail:
+      type: object
+      description: 'Used for the single-submission endpoint: includes every answer.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          nullable: true
+        process_run:
+          type: integer
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerDetail'
+          readOnly: true
+      required:
+      - answers
+      - id
+      - submitted_at
+    SubmissionList:
+      type: object
+      description: 'Used for the paginated list endpoint: no answers, just metadata.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          nullable: true
+        process_run:
+          type: integer
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - submitted_at
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+    TypeEnum:
+      enum:
+      - text
+      - select
+      - checkbox
+      - number
+      type: string
+      description: |-
+        * `text` - Text
+        * `select` - Select
+        * `checkbox` - Checkbox
+        * `number` - Number
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,6 +1,11 @@
 
 from django.db import models
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +17,7 @@ from .models import Category, Form, Question
 from .serializers import (
     CategorySerializer,
     FormSerializer,
+    PrivateFormAccessSerializer,
     PublicFormSerializer,
     QuestionSerializer,
 )
@@ -21,6 +27,52 @@ from .token_utils import (
 )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="List categories",
+        description="Retrieve all categories belonging to the authenticated user.",
+        responses={200: CategorySerializer(many=True)},
+        examples=[
+            OpenApiExample(
+                "Category list response",
+                value=[
+                    {
+                        "id": 1,
+                        "name": "Education",
+                        "created_at": "2026-10-02T10:00:00Z",
+                        "updated_at": "2026-10-02T10:00:00Z",
+                    }
+                ],
+                response_only=True,
+                status_codes=["200"],
+            )
+        ],
+    ),
+    post=extend_schema(
+        summary="Create category",
+        description="Create a category for the authenticated user.",
+        request=CategorySerializer,
+        responses={201: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Create category request",
+                value={"name": "Education"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Create category response",
+                value={
+                    "id": 1,
+                    "name": "Education",
+                    "created_at": "2026-10-02T10:00:00Z",
+                    "updated_at": "2026-10-02T10:00:00Z",
+                },
+                response_only=True,
+                status_codes=["201"],
+            ),
+        ],
+    ),
+)
 class CategoryListCreateView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
@@ -34,6 +86,40 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         serializer.save(owner=self.request.user)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Retrieve category",
+        responses={200: CategorySerializer},
+    ),
+    put=extend_schema(
+        summary="Update category",
+        request=CategorySerializer,
+        responses={200: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Update category request",
+                value={"name": "Science"},
+                request_only=True,
+            )
+        ],
+    ),
+    patch=extend_schema(
+        summary="Partially update category",
+        request=CategorySerializer,
+        responses={200: CategorySerializer},
+        examples=[
+            OpenApiExample(
+                "Partial update request",
+                value={"name": "Science"},
+                request_only=True,
+            )
+        ],
+    ),
+    delete=extend_schema(
+        summary="Delete category",
+        responses={204: None},
+    ),
+)
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
@@ -124,10 +210,83 @@ class QuestionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         instance.choices.filter(is_active=True).update(is_active=False)
 
-
+@extend_schema(
+    summary="Retrieve public form",
+    description="Retrieve a public form or access a private form using a valid token.",
+    responses={
+        200: PublicFormSerializer,
+        403: {
+            "type": "object",
+            "properties": {
+                "detail": {"type": "string"},
+            },
+        },
+    },
+)
 class PublicFormView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Access private form",
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "password": {"type": "string"},
+                },
+                "required": ["password"],
+            }
+        },
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "access_token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+            403: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+        },
+        examples=[
+            OpenApiExample(
+                "Access private form request",
+                value={"password": "secure-password"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Successful access response",
+                value={
+                    "access_token": "example-access-token",
+                    "token_type": "Bearer",
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Public form error",
+                value={"detail": "This form is public."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Invalid password error",
+                value={"detail": "Invalid password."},
+                response_only=True,
+                status_codes=["403"],
+            ),
+        ],
+    )
     def get(self, request, slug):
         form = get_object_or_404(Form, slug=slug)
 
@@ -136,17 +295,73 @@ class PublicFormView(APIView):
 
             if not verify_form_access_token(form, token):
                 return Response(
-                    {"detail": "This form is private. Password required."},
+                    {
+                        "detail": (
+                            "This form is private. Password required."
+                        )
+                    },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
         record_visit(request, form=form)
         return Response(PublicFormSerializer(form).data)
 
-
 class PrivateFormAccessView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Access private form",
+        request=PrivateFormAccessSerializer,
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "access_token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+            403: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+        },
+        examples=[
+            OpenApiExample(
+                "Access private form request",
+                value={"password": "secure-password"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Successful access response",
+                value={
+                    "access_token": "example-access-token",
+                    "token_type": "Bearer",
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Public form error",
+                value={"detail": "This form is public."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Invalid password error",
+                value={"detail": "Invalid password."},
+                response_only=True,
+                status_codes=["403"],
+            ),
+        ],
+    )
     def post(self, request, slug):
         form = get_object_or_404(Form, slug=slug)
 
