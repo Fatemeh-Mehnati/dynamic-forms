@@ -38,5 +38,41 @@ services:
       redis:
         condition: service_started
 
+
+  celery-worker:
+    build: .
+    command: celery -A config.celery worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: postgres://dynamic_forms:dynamic_forms@db:5432/dynamic_forms
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery-beat:
+    build: .
+    command: celery -A config.celery beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: postgres://dynamic_forms:dynamic_forms@db:5432/dynamic_forms
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 volumes:
   pgdata:
+
