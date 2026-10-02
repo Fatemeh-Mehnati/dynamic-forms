@@ -1,11 +1,11 @@
 # Create your views here.
+from django.db import models
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Category, Form
 from .serializers import CategorySerializer, FormSerializer
 
-from django.db import models
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
