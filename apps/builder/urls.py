@@ -5,6 +5,8 @@ from .views import (
     CategoryListCreateView,
     FormDetailView,
     FormListCreateView,
+    QuestionDetailView,
+    QuestionListCreateView,
 )
 
 urlpatterns = [
@@ -16,4 +18,14 @@ urlpatterns = [
     ),
     path("forms/", FormListCreateView.as_view(), name="form-list-create"),
     path("forms/<int:pk>/", FormDetailView.as_view(), name="form-detail"),
+    path(
+        "forms/<int:form_id>/questions/",
+        QuestionListCreateView.as_view(),
+        name="question-list-create",
+    ),
+    path(
+        "forms/<int:form_id>/questions/<int:question_id>/",
+        QuestionDetailView.as_view(),
+        name="question-detail",
+    ),
 ]
