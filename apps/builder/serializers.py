@@ -1,11 +1,10 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Category, Choice, Form, Question
-
-from drf_spectacular.utils import extend_schema_field
 
 
 class CategorySerializer(serializers.ModelSerializer):

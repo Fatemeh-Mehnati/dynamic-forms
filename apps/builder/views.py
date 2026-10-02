@@ -1,6 +1,11 @@
 
 from django.db import models
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -12,8 +17,8 @@ from .models import Category, Form, Question
 from .serializers import (
     CategorySerializer,
     FormSerializer,
-    PublicFormSerializer,
     PrivateFormAccessSerializer,
+    PublicFormSerializer,
     QuestionSerializer,
 )
 from .token_utils import (
@@ -21,11 +26,6 @@ from .token_utils import (
     verify_form_access_token,
 )
 
-from drf_spectacular.utils import (
-    OpenApiExample,
-    extend_schema,
-    extend_schema_view,
-)
 
 @extend_schema_view(
     get=extend_schema(
