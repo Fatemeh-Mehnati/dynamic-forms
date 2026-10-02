@@ -1,6 +1,6 @@
 from django.db.models import Avg, Max, Min
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,8 +10,8 @@ from apps.builder.models import Form
 from apps.processes.models import Process
 from apps.responses.models import Answer, AnswerChoice, Submission
 
-from .models import ReportSchedule, Visit
-from .serializers import ReportScheduleSerializer
+from .cache import get_form_report, set_form_report
+from .models import Visit
 
 
 class FormReportView(APIView):
@@ -28,6 +28,10 @@ class FormReportView(APIView):
 
         if form.owner_id != request.user.id:
             raise PermissionDenied("You do not have permission to view this report.")
+        cached_report = get_form_report(form_id)
+
+        if cached_report is not None:
+            return Response(cached_report, status=status.HTTP_200_OK)
 
         submissions = Submission.objects.filter(form=form)
 
@@ -101,7 +105,7 @@ class FormReportView(APIView):
                 question_data["options"] = options
 
             report["questions"].append(question_data)
-
+        set_form_report(form_id, report)
         return Response(report, status=status.HTTP_200_OK)
 
 
@@ -165,16 +169,4 @@ class ProcessReportView(APIView):
                     "completion_percentage": completion_percentage,
                 }
             )
-
         return Response(report, status=status.HTTP_200_OK)
-
-
-class ReportScheduleViewSet(viewsets.ModelViewSet):
-    serializer_class = ReportScheduleSerializer
-    permission_classes = [permissions.IsAdminUser]
-
-    def get_queryset(self):
-        return ReportSchedule.objects.all().order_by("-created_at")
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
