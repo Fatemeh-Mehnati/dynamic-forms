@@ -5,16 +5,11 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 
-from apps.builder.models import Form
+from apps.builder.models import Form, Question
 from apps.processes.models import Process
-from apps.reports.models import Visit
 from apps.reports.services import record_visit
-
 from apps.reports.views import FormReportView
-
-from apps.builder.models import Form , Question
-from apps.responses.models import Answer , Submission
-
+from apps.responses.models import Answer, Submission
 
 User = get_user_model()
 
