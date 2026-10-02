@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -8,8 +8,9 @@ from django.utils import timezone
 
 from apps.builder.models import Form, Question
 from apps.processes.models import Process, ProcessRun, ProcessStep
-from apps.reports.models import Visit
+from apps.reports.models import ReportSchedule, Visit
 from apps.reports.services import record_visit
+from apps.reports.tasks import send_periodic_reports
 from apps.reports.views import FormReportView, ProcessReportView
 from apps.responses.models import Answer, Submission
 
@@ -489,3 +490,80 @@ def test_process_report_zero_runs_has_zero_completion():
     assert step_report["step_id"] == step.id
     assert step_report["submissions"] == 0
     assert step_report["completion_percentage"] == 0
+
+def test_periodic_report_email():
+    user = User.objects.create_user(
+        username="staff",
+        email="staff@example.com",
+        password="password123",
+        is_staff=True,
+    )
+
+    schedule = ReportSchedule.objects.create(
+        created_by=user,
+        frequency=ReportSchedule.FREQUENCY_WEEKLY,
+        channel=ReportSchedule.CHANNEL_EMAIL,
+        target="admin@example.com",
+    )
+
+    with patch("apps.reports.tasks.send_mail") as mock_send:
+        send_periodic_reports()
+
+    mock_send.assert_called_once()
+    schedule.refresh_from_db()
+
+    assert schedule.last_sent_at is not None
+
+
+@pytest.mark.django_db
+def test_periodic_report_api():
+    user = User.objects.create_user(
+        username="staffapi",
+        email="staffapi@example.com",
+        password="password123",
+        is_staff=True,
+    )
+
+    schedule = ReportSchedule.objects.create(
+        created_by=user,
+        frequency=ReportSchedule.FREQUENCY_WEEKLY,
+        channel=ReportSchedule.CHANNEL_API,
+        target="https://example.com/report",
+    )
+
+    response = Mock()
+    response.raise_for_status.return_value = None
+
+    with patch(
+        "apps.reports.tasks.requests.post",
+        return_value=response,
+    ) as mock_post:
+        send_periodic_reports()
+
+    mock_post.assert_called_once()
+    schedule.refresh_from_db()
+
+    assert schedule.last_sent_at is not None
+
+
+@pytest.mark.django_db
+def test_periodic_report_inactive_schedule_not_sent():
+    user = User.objects.create_user(
+        username="inactive",
+        email="inactive@example.com",
+        password="password123",
+        is_staff=True,
+    )
+
+    ReportSchedule.objects.create(
+        created_by=user,
+        frequency=ReportSchedule.FREQUENCY_WEEKLY,
+        channel=ReportSchedule.CHANNEL_EMAIL,
+        target="admin@example.com",
+        is_active=False,
+    )
+
+    with patch("apps.reports.tasks.send_mail") as mock_send:
+        send_periodic_reports()
+
+    mock_send.assert_not_called()

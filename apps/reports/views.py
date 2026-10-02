@@ -1,6 +1,6 @@
 from django.db.models import Avg, Max, Min
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,7 +10,8 @@ from apps.builder.models import Form
 from apps.processes.models import Process
 from apps.responses.models import Answer, AnswerChoice, Submission
 
-from .models import Visit
+from .models import ReportSchedule, Visit
+from .serializers import ReportScheduleSerializer
 
 
 class FormReportView(APIView):
@@ -166,3 +167,14 @@ class ProcessReportView(APIView):
             )
 
         return Response(report, status=status.HTTP_200_OK)
+
+
+class ReportScheduleViewSet(viewsets.ModelViewSet):
+    serializer_class = ReportScheduleSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return ReportSchedule.objects.all().order_by("-created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)

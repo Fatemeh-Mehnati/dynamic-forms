@@ -79,6 +79,13 @@ CACHES = {
 CELERY_BROKER_URL = env("REDIS_URL")
 CELERY_RESULT_BACKEND = env("REDIS_URL")
 
+CELERY_BEAT_SCHEDULE = {
+    "send-periodic-reports-daily": {
+        "task": "apps.reports.tasks.send_periodic_reports",
+        "schedule": 86400,
+    },
+}
+
 AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
