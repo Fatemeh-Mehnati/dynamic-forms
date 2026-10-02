@@ -13,7 +13,23 @@
   <section class="col-12 col-lg-6" aria-labelledby="categories-title">
     <div class="card h-100"><div class="card-body">
       <h2 id="categories-title" class="h5">دسته‌بندی‌ها</h2>
-      <p class="text-secondary mb-0">این بخش هنوز در دسترس نیست.</p>
+      {% if user.is_authenticated %}
+        <noscript><p class="alert alert-warning">برای دریافت دسته‌بندی‌ها JavaScript را فعال کنید.</p></noscript>
+        <div id="categories-panel" data-list-url="{% url 'category-list-create' %}" aria-busy="false">
+          <p id="category-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">دسته‌ها هنوز دریافت نشده‌اند.</p>
+          <div id="category-errors" role="alert" aria-live="assertive" hidden></div>
+          <p id="category-count" hidden></p>
+          <ul id="category-results" class="list-group mb-3"></ul>
+          <div class="d-flex flex-wrap align-items-center gap-2" aria-label="صفحه‌بندی دسته‌ها">
+            <button id="category-previous" type="button" class="btn btn-outline-primary" disabled>قبلی</button>
+            <button id="category-next" type="button" class="btn btn-outline-primary" disabled>بعدی</button>
+            <span id="category-page"></span>
+            <button id="category-retry" type="button" class="btn btn-outline-secondary" hidden disabled>تلاش مجدد</button>
+          </div>
+        </div>
+      {% else %}
+        <p class="alert alert-info mb-0">برای مشاهدهٔ دسته‌بندی‌های خود باید وارد حساب شوید.</p>
+      {% endif %}
     </div></div>
   </section>
   <section class="col-12" aria-labelledby="processes-title">
@@ -25,10 +41,15 @@
           <form id="process-search-form" class="mb-3">
             <label for="process-search" class="form-label">جستجوی فرایند</label>
             <input id="process-search" type="search" class="form-control" aria-describedby="process-search-help">
-            <p id="process-search-help" class="form-text">جستجو در عنوان و توضیح انجام می‌شود؛ برای اعمال متن، دکمهٔ جستجو را بزنید.</p>
+            <p id="process-search-help" class="form-text">جستجو در عنوان و توضیح انجام می‌شود؛ برای اعمال متن و دسته، دکمهٔ اعمال فیلترها را بزنید.</p>
+            <label for="process-category" class="form-label">دستهٔ فرایند</label>
+            <select id="process-category" class="form-select mb-2" aria-describedby="process-category-help" disabled>
+              <option value="">همهٔ دسته‌ها</option>
+            </select>
+            <p id="process-category-help" class="form-text">گزینه‌ها از صفحهٔ جاری دسته‌بندی‌ها هستند. برای دسته‌های بیشتر، از قبلی و بعدی بخش دسته‌بندی‌ها استفاده کنید؛ سپس فیلتر را اعمال کنید.</p>
             <div class="d-flex flex-wrap gap-2">
-              <button id="process-apply" type="submit" class="btn btn-primary" disabled>جستجو</button>
-              <button id="process-clear" type="button" class="btn btn-outline-secondary" disabled>پاک کردن جستجو</button>
+              <button id="process-apply" type="submit" class="btn btn-primary" disabled>اعمال فیلترها</button>
+              <button id="process-clear" type="button" class="btn btn-outline-secondary" disabled>پاک کردن فیلترها</button>
             </div>
           </form>
           <p id="process-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">فهرست هنوز دریافت نشده است.</p>
