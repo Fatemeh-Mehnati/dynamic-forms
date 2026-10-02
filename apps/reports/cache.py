@@ -1,6 +1,5 @@
 from django.core.cache import cache
 
-
 FORM_REPORT_CACHE_TIMEOUT = 60 * 5
 PROCESS_REPORT_CACHE_TIMEOUT = 60 * 5
 

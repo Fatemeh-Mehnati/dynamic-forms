@@ -6,4 +6,4 @@ class ReportsConfig(AppConfig):
     name = 'apps.reports'
 
     def ready(self):
-        from . import signals
+        pass

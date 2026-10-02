@@ -3,7 +3,7 @@ from django.dispatch import receiver
 
 from apps.responses.models import Submission
 
-from .cache import invalidate_process_report, invalidate_form_report
+from .cache import invalidate_form_report, invalidate_process_report
 
 
 @receiver(post_save, sender=Submission)

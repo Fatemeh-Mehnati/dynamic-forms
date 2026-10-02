@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 
@@ -11,8 +12,6 @@ from apps.reports.services import record_visit
 from apps.reports.views import FormReportView
 from apps.responses.models import Answer, Submission
 
-from django.core.cache import cache
-from django.test import override_settings
 User = get_user_model()
 
 

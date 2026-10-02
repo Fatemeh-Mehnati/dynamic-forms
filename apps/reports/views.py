@@ -9,9 +9,8 @@ from rest_framework.views import APIView
 from apps.builder.models import Form
 from apps.responses.models import Answer, AnswerChoice, Submission
 
-from .models import Visit
-
 from .cache import get_form_report, set_form_report
+from .models import Visit
 
 
 class FormReportView(APIView):
