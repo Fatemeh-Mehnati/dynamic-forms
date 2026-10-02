@@ -6,4 +6,4 @@ class ReportsConfig(AppConfig):
     name = 'apps.reports'
 
     def ready(self):
-        pass
+        from . import signals  # noqa: F401
