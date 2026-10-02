@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from rest_framework.test import APIClient
 
-from apps.builder.models import Form
+from apps.builder.models import Form, Question
 from apps.processes.models import Process, ProcessRun, ProcessStep
 
 User = get_user_model()
@@ -276,3 +276,198 @@ def test_reorder_rejects_wrong_step_set(owner, process, forms):
         format="json",
     )
     assert response.status_code == 400
+
+# -------------------------------------------------------------------- C6 --
+
+
+def runs_url(process):
+    return f"/api/v1/public/processes/{process.slug}/runs/"
+
+
+def run_url(process, token):
+    return f"{runs_url(process)}{token}/"
+
+
+def submit_url(process, token, step):
+    return f"{run_url(process, token)}steps/{step.id}/submit/"
+
+
+@pytest.fixture
+def steps(process, forms):
+    """3 steps (public, linear). Every form has one required text question."""
+    for form in forms:
+        Question.objects.create(
+            form=form, type=Question.TYPE_TEXT, text="Name", order=1, is_required=True
+        )
+    return [
+        ProcessStep.objects.create(process=process, form=form, order=i)
+        for i, form in enumerate(forms, start=1)
+    ]
+
+
+def answers_for(step):
+    q = Question.objects.get(form_id=step.form_id)
+    return {"answers": [{"question": q.id, "text": "Ali"}]}
+
+
+def start(process, client=None):
+    client = client or APIClient()
+    response = client.post(runs_url(process))
+    assert response.status_code == 201
+    return response.json()
+
+
+def states(process, token):
+    body = APIClient().get(run_url(process, token)).json()
+    return [s["state"] for s in body["steps"]]
+
+
+@pytest.mark.django_db
+def test_start_run_anonymous(process, steps):
+    body = start(process)
+    assert body["respondent_token"]
+    assert [s["state"] for s in body["status"]] == ["available", "locked", "locked"]
+    run = ProcessRun.objects.get(id=body["id"])
+    assert run.user is None and run.process == process
+
+
+@pytest.mark.django_db
+def test_start_run_logged_in_sets_user(process, steps, owner):
+    body = start(process, owner_client(owner))
+    assert ProcessRun.objects.get(id=body["id"]).user == owner
+
+
+@pytest.mark.django_db
+def test_start_run_private_process_is_forbidden(process, steps):
+    process.is_public = False
+    process.save()
+    assert APIClient().post(runs_url(process)).status_code == 403
+    assert ProcessRun.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_start_run_unknown_slug_is_404():
+    response = APIClient().post("/api/v1/public/processes/nope/runs/")
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_run_status_wrong_token_or_wrong_process_is_404(process, steps, owner):
+    token = start(process)["respondent_token"]
+    assert APIClient().get(run_url(process, "wrong-token")).status_code == 404
+    other = Process.objects.create(owner=owner, title="Other", is_public=True)
+    assert APIClient().get(run_url(other, token)).status_code == 404
+
+
+@pytest.mark.django_db
+def test_linear_submit_in_order_and_complete(process, steps):
+    token = start(process)["respondent_token"]
+    for i, step in enumerate(steps):
+        response = APIClient().post(
+            submit_url(process, token, step), answers_for(step), format="json"
+        )
+        assert response.status_code == 201
+        last = i == len(steps) - 1
+        assert (response.json()["completed_at"] is not None) == last
+
+    assert states(process, token) == ["done", "done", "done"]
+    run = ProcessRun.objects.get()
+    assert run.completed_at is not None
+    assert run.submissions.count() == 3
+
+
+@pytest.mark.django_db
+def test_linear_status_moves_forward(process, steps):
+    token = start(process)["respondent_token"]
+    APIClient().post(submit_url(process, token, steps[0]), answers_for(steps[0]), format="json")
+    assert states(process, token) == ["done", "available", "locked"]
+
+
+@pytest.mark.django_db
+def test_linear_cannot_skip_a_step(process, steps):
+    token = start(process)["respondent_token"]
+    response = APIClient().post(
+        submit_url(process, token, steps[1]), answers_for(steps[1]), format="json"
+    )
+    assert response.status_code == 403
+    assert ProcessRun.objects.get().submissions.count() == 0
+
+
+@pytest.mark.django_db
+def test_duplicate_submit_is_409(process, steps):
+    token = start(process)["respondent_token"]
+    url = submit_url(process, token, steps[0])
+    assert APIClient().post(url, answers_for(steps[0]), format="json").status_code == 201
+    assert APIClient().post(url, answers_for(steps[0]), format="json").status_code == 409
+    assert ProcessRun.objects.get().submissions.count() == 1
+
+
+@pytest.mark.django_db
+def test_invalid_answers_are_400_and_step_stays_available(process, steps):
+    token = start(process)["respondent_token"]
+    response = APIClient().post(
+        submit_url(process, token, steps[0]), {"answers": []}, format="json"
+    )
+    assert response.status_code == 400
+    assert ProcessRun.objects.get().submissions.count() == 0
+    assert states(process, token)[0] == "available"
+    assert ProcessRun.objects.get().completed_at is None
+
+
+@pytest.mark.django_db
+def test_step_of_another_process_is_404(process, steps, owner, forms):
+    other = Process.objects.create(owner=owner, title="Other", is_public=True)
+    foreign = ProcessStep.objects.create(process=other, form=forms[0], order=1)
+    token = start(process)["respondent_token"]
+    response = APIClient().post(
+        submit_url(process, token, foreign), answers_for(foreign), format="json"
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_free_mode_has_no_locked_steps_and_any_order(process, steps):
+    process.mode = Process.MODE_FREE
+    process.save()
+    token = start(process)["respondent_token"]
+    assert states(process, token) == ["available"] * 3
+
+    response = APIClient().post(
+        submit_url(process, token, steps[2]), answers_for(steps[2]), format="json"
+    )
+    assert response.status_code == 201
+    assert states(process, token) == ["available", "available", "done"]
+    assert ProcessRun.objects.get().completed_at is None
+
+
+@pytest.mark.django_db
+def test_submission_is_linked_to_run_and_user(process, steps, owner):
+    token = start(process, owner_client(owner))["respondent_token"]
+    client = owner_client(owner)
+    response = client.post(
+        submit_url(process, token, steps[0]), answers_for(steps[0]), format="json"
+    )
+    assert response.status_code == 201
+    submission = ProcessRun.objects.get().submissions.get()
+    assert submission.user == owner
+    assert submission.form_id == steps[0].form_id
+
+
+@pytest.mark.django_db
+def test_anonymous_submission_has_no_user(process, steps):
+    token = start(process)["respondent_token"]
+    APIClient().post(submit_url(process, token, steps[0]), answers_for(steps[0]), format="json")
+    assert ProcessRun.objects.get().submissions.get().user is None
+
+
+@pytest.mark.django_db
+def test_same_form_twice_in_one_process(process, forms):
+    Question.objects.create(form=forms[0], type=Question.TYPE_TEXT, text="N", order=1)
+    s1 = ProcessStep.objects.create(process=process, form=forms[0], order=1)
+    s2 = ProcessStep.objects.create(process=process, form=forms[0], order=2)
+    token = start(process)["respondent_token"]
+    assert states(process, token) == ["available", "locked"]
+    assert APIClient().post(submit_url(process, token, s1), {"answers": []}, format="json").status_code == 201
+    assert states(process, token) == ["done", "available"]
+    assert APIClient().post(submit_url(process, token, s2), {"answers": []}, format="json").status_code == 201
+    assert ProcessRun.objects.get().completed_at is not None
