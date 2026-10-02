@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.builder.models import Form
+from apps.processes.models import Process
 from apps.responses.models import Answer, AnswerChoice, Submission
 
 from .models import Visit
@@ -99,5 +100,69 @@ class FormReportView(APIView):
                 question_data["options"] = options
 
             report["questions"].append(question_data)
+
+        return Response(report, status=status.HTTP_200_OK)
+
+
+class ProcessReportView(APIView):
+    """
+    Return aggregated report data for a process.
+
+    Only the process owner can access the report.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, process_id):
+        process = get_object_or_404(Process, pk=process_id)
+
+        if process.owner_id != request.user.id:
+            raise PermissionDenied(
+                "You do not have permission to view this report."
+            )
+
+        runs = process.runs.all()
+        steps = process.steps.all().select_related("form")
+
+        report = {
+            "process": {
+                "id": process.id,
+                "title": process.title,
+            },
+            "summary": {
+                "visits": Visit.objects.filter(process=process).count(),
+                "runs_started": runs.count(),
+                "runs_completed": runs.filter(
+                    completed_at__isnull=False
+                ).count(),
+            },
+            "steps": [],
+        }
+
+        runs_started = runs.count()
+
+        for step in steps:
+            submissions = Submission.objects.filter(
+                form=step.form,
+                process_run__process=process,
+            )
+
+            submissions_count = submissions.count()
+
+            completion_percentage = (
+                round((submissions_count / runs_started) * 100, 2)
+                if runs_started
+                else 0
+            )
+
+            report["steps"].append(
+                {
+                    "step_id": step.id,
+                    "form_id": step.form_id,
+                    "order": step.order,
+                    "submissions": submissions_count,
+                    "completion_percentage": completion_percentage,
+                }
+            )
 
         return Response(report, status=status.HTTP_200_OK)
