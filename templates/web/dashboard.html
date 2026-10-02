@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}داشبورد{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">داشبورد</h1>
+<div class="row g-4">
+  <section class="col-12 col-lg-6" aria-labelledby="forms-title">
+    <div class="card h-100"><div class="card-body">
+      <h2 id="forms-title" class="h5">فرم‌ها</h2>
+      <p class="text-secondary mb-0">این بخش هنوز در دسترس نیست.</p>
+    </div></div>
+  </section>
+  <section class="col-12 col-lg-6" aria-labelledby="categories-title">
+    <div class="card h-100"><div class="card-body">
+      <h2 id="categories-title" class="h5">دسته‌بندی‌ها</h2>
+      <p class="text-secondary mb-0">این بخش هنوز در دسترس نیست.</p>
+    </div></div>
+  </section>
+  <section class="col-12" aria-labelledby="processes-title">
+    <div class="card"><div class="card-body">
+      <h2 id="processes-title" class="h5">فرایندها</h2>
+      {% if user.is_authenticated %}
+        <noscript><p class="alert alert-warning">برای دریافت و جستجوی فرایندها، JavaScript مرورگر را فعال کنید.</p></noscript>
+        <div id="processes-panel" data-list-url="{% url 'process-list' %}" aria-busy="false">
+          <form id="process-search-form" class="mb-3">
+            <label for="process-search" class="form-label">جستجوی فرایند</label>
+            <input id="process-search" type="search" class="form-control" aria-describedby="process-search-help">
+            <p id="process-search-help" class="form-text">جستجو در عنوان و توضیح انجام می‌شود؛ برای اعمال متن، دکمهٔ جستجو را بزنید.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <button id="process-apply" type="submit" class="btn btn-primary" disabled>جستجو</button>
+              <button id="process-clear" type="button" class="btn btn-outline-secondary" disabled>پاک کردن جستجو</button>
+            </div>
+          </form>
+          <p id="process-status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">فهرست هنوز دریافت نشده است.</p>
+          <div id="process-errors" role="alert" aria-live="assertive" aria-atomic="true" hidden></div>
+          <p id="process-count" hidden></p>
+          <ul id="process-results" class="list-unstyled row g-3"></ul>
+          <div class="d-flex flex-wrap align-items-center gap-2" aria-label="صفحه‌بندی فرایندها">
+            <button id="process-previous" type="button" class="btn btn-outline-primary" disabled>قبلی</button>
+            <button id="process-next" type="button" class="btn btn-outline-primary" disabled>بعدی</button>
+            <span id="process-page"></span>
+            <button id="process-retry" type="button" class="btn btn-outline-secondary" hidden disabled>تلاش مجدد</button>
+          </div>
+        </div>
+      {% else %}
+        <p class="alert alert-info mb-0">برای مشاهدهٔ فرایندهای خود باید وارد حساب شوید.</p>
+      {% endif %}
+    </div></div>
+  </section>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/web-dashboard.js' %}"></script>
+{% endblock %}
