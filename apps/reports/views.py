@@ -11,6 +11,8 @@ from apps.responses.models import Answer, AnswerChoice, Submission
 
 from .models import Visit
 
+from .cache import get_form_report, set_form_report
+
 
 class FormReportView(APIView):
     """
@@ -26,6 +28,11 @@ class FormReportView(APIView):
 
         if form.owner_id != request.user.id:
             raise PermissionDenied("You do not have permission to view this report.")
+
+        cached_report = get_form_report(form_id)
+
+        if cached_report is not None:
+            return Response(cached_report, status=status.HTTP_200_OK)
 
         submissions = Submission.objects.filter(form=form)
 
@@ -99,5 +106,7 @@ class FormReportView(APIView):
                 question_data["options"] = options
 
             report["questions"].append(question_data)
+
+        set_form_report(form_id, report)
 
         return Response(report, status=status.HTTP_200_OK)

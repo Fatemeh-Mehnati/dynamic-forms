@@ -11,6 +11,8 @@ from apps.reports.services import record_visit
 from apps.reports.views import FormReportView
 from apps.responses.models import Answer, Submission
 
+from django.core.cache import cache
+from django.test import override_settings
 User = get_user_model()
 
 
@@ -249,3 +251,91 @@ def test_form_report_non_owner_forbidden():
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_form_report_cache_is_invalidated_on_submission():
+    user = User.objects.create_user(
+        username="cacheowner",
+        email="cacheowner@example.com",
+        password="password123",
+    )
+
+    form = Form.objects.create(
+        owner=user,
+        title="Cached Report",
+        description="Cache test",
+        is_public=True,
+    )
+
+    cache_key = f"report:form:{form.id}"
+
+    cached_data = {
+        "form": {
+            "id": form.id,
+            "title": form.title,
+        },
+        "summary": {
+            "visits": 0,
+            "submissions": 0,
+        },
+        "questions": [],
+    }
+
+    cache.set(cache_key, cached_data, 300)
+
+    assert cache.get(cache_key) == cached_data
+
+    Submission.objects.create(
+        form=form,
+        user=user,
+    )
+
+    assert cache.get(cache_key) is None
+
+
+@pytest.mark.django_db
+def test_form_report_uses_cache():
+    user = User.objects.create_user(
+        username="cacheviewowner",
+        email="cacheviewowner@example.com",
+        password="password123",
+    )
+
+    form = Form.objects.create(
+        owner=user,
+        title="Original Title",
+        description="Cache view test",
+        is_public=True,
+    )
+
+    cached_report = {
+        "form": {
+            "id": form.id,
+            "title": "Cached Title",
+        },
+        "summary": {
+            "visits": 99,
+            "submissions": 88,
+        },
+        "questions": [],
+    }
+
+    cache.set(
+        f"report:form:{form.id}",
+        cached_report,
+        300,
+    )
+
+    request = RequestFactory().get(
+        f"/api/v1/forms/{form.id}/report/",
+    )
+    request.user = user
+
+    response = FormReportView.as_view()(
+        request,
+        form_id=form.id,
+    )
+
+    assert response.status_code == 200
+    assert response.data == cached_report
