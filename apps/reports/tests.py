@@ -491,6 +491,7 @@ def test_process_report_zero_runs_has_zero_completion():
     assert step_report["submissions"] == 0
     assert step_report["completion_percentage"] == 0
 
+@pytest.mark.django_db
 def test_periodic_report_email():
     user = User.objects.create_user(
         username="staff",
