@@ -1,0 +1,13 @@
+{% if messages %}
+  <section aria-label="پیام‌های سامانه" aria-live="polite" aria-atomic="false">
+    {% for message in messages %}
+      <div data-web-message class="alert {% if message.level == 40 %}alert-danger{% elif message.level == 30 %}alert-warning{% elif message.level == 25 %}alert-success{% else %}alert-info{% endif %}">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          <span class="flex-grow-1">{{ message }}</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-web-dismiss-message>پاک کردن پیام</button>
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+<div id="web-api-errors" role="alert" aria-live="assertive" aria-atomic="true" hidden></div>
