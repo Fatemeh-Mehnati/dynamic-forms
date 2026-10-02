@@ -5,6 +5,8 @@ from .views import (
     CategoryListCreateView,
     FormDetailView,
     FormListCreateView,
+    PrivateFormAccessView,
+    PublicFormView,
     QuestionDetailView,
     QuestionListCreateView,
 )
@@ -27,5 +29,15 @@ urlpatterns = [
         "forms/<int:form_id>/questions/<int:question_id>/",
         QuestionDetailView.as_view(),
         name="question-detail",
+    ),
+    path(
+        "public/forms/<slug:slug>/",
+        PublicFormView.as_view(),
+        name="public-form-detail",
+    ),
+    path(
+        "public/forms/<slug:slug>/access/",
+        PrivateFormAccessView.as_view(),
+        name="private-form-access",
     ),
 ]
