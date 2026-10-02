@@ -1,6 +1,7 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-from .views import FormReportView, ProcessReportView
+from .views import FormReportView, ProcessReportView, ReportScheduleViewSet
 
 urlpatterns = [
     path(
@@ -14,3 +15,12 @@ urlpatterns = [
         name="process-report",
     ),
 ]
+
+router = DefaultRouter()
+router.register(
+    "report-schedules",
+    ReportScheduleViewSet,
+    basename="report-schedule",
+)
+
+urlpatterns += router.urls
