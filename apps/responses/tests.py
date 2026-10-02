@@ -3,9 +3,11 @@ from unittest import mock
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from apps.builder.models import Choice, Form, Question
+from apps.builder.token_utils import create_form_access_token
 from apps.responses.models import Answer, AnswerChoice, Submission
 
 User = get_user_model()
@@ -288,6 +290,63 @@ def test_private_form_without_token_is_forbidden(form, text_q):
     form.is_public = False
     form.save()
     response = post(form, [{"question": text_q.id, "text": "Ali"}])
+    assert response.status_code == 403
+    assert Submission.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_private_form_with_valid_token_is_allowed(form, text_q):
+    form.is_public = False
+    form.save()
+
+    token = create_form_access_token(form)
+    client = APIClient()
+    client.credentials(HTTP_X_FORM_ACCESS_TOKEN=token)
+
+    response = post(
+        form,
+        [{"question": text_q.id, "text": "Ali"}],
+        client=client,
+    )
+
+    assert response.status_code == 201
+    assert Submission.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_private_form_with_invalid_token_is_forbidden(form, text_q):
+    form.is_public = False
+    form.save()
+
+    client = APIClient()
+    client.credentials(HTTP_X_FORM_ACCESS_TOKEN="invalid-token")
+
+    response = post(
+        form,
+        [{"question": text_q.id, "text": "Ali"}],
+        client=client,
+    )
+
+    assert response.status_code == 403
+    assert Submission.objects.count() == 0
+
+
+@pytest.mark.django_db
+@override_settings(FORM_ACCESS_TOKEN_TTL=-1)
+def test_private_form_with_expired_token_is_forbidden(form, text_q):
+    form.is_public = False
+    form.save()
+
+    token = create_form_access_token(form)
+    client = APIClient()
+    client.credentials(HTTP_X_FORM_ACCESS_TOKEN=token)
+
+    response = post(
+        form,
+        [{"question": text_q.id, "text": "Ali"}],
+        client=client,
+    )
+
     assert response.status_code == 403
     assert Submission.objects.count() == 0
 

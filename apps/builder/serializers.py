@@ -291,3 +291,48 @@ class FormSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class PublicChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Choice
+        fields = ["id", "label", "order"]
+
+
+class PublicQuestionSerializer(serializers.ModelSerializer):
+    choices = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "type",
+            "text",
+            "is_required",
+            "order",
+            "config",
+            "choices",
+        ]
+
+    def get_choices(self, obj):
+        if obj.type not in [Question.TYPE_SELECT, Question.TYPE_CHECKBOX]:
+            return []
+
+        choices = obj.choices.filter(is_active=True).order_by("order", "id")
+        return PublicChoiceSerializer(choices, many=True).data
+
+
+class PublicFormSerializer(serializers.ModelSerializer):
+    questions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Form
+        fields = [
+            "title",
+            "description",
+            "questions",
+        ]
+
+    def get_questions(self, obj):
+        questions = obj.questions.filter(is_active=True).order_by("order", "id")
+        return PublicQuestionSerializer(questions, many=True).data
