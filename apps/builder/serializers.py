@@ -341,3 +341,6 @@ class PublicFormSerializer(serializers.ModelSerializer):
     def get_questions(self, obj):
         questions = obj.questions.filter(is_active=True).order_by("order", "id")
         return PublicQuestionSerializer(questions, many=True).data
+
+class PrivateFormAccessSerializer(serializers.Serializer):
+    password = serializers.CharField()

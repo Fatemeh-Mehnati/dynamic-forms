@@ -1033,38 +1033,6 @@ paths:
     get:
       operationId: v1_public_forms_retrieve
       description: Retrieve a public form or access a private form using a valid token.
-      summary: Retrieve public form
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - jwtAuth: []
-      - cookieAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PublicForm'
-          description: ''
-        '403':
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  detail:
-                    type: string
-          description: ''
-  /api/v1/public/forms/{slug}/access/:
-    post:
-      operationId: v1_public_forms_access_create
       summary: Access private form
       parameters:
       - in: path
@@ -1089,18 +1057,119 @@ paths:
                     type: string
                   token_type:
                     type: string
+              examples:
+                SuccessfulAccessResponse:
+                  value:
+                    access_token: example-access-token
+                    token_type: Bearer
+                  summary: Successful access response
           description: ''
         '400':
           content:
             application/json:
               schema:
                 type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                PublicFormError:
+                  value:
+                    detail: This form is public.
+                  summary: Public form error
           description: ''
         '403':
           content:
             application/json:
               schema:
                 type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                InvalidPasswordError:
+                  value:
+                    detail: Invalid password.
+                  summary: Invalid password error
+          description: ''
+  /api/v1/public/forms/{slug}/access/:
+    post:
+      operationId: v1_public_forms_access_create
+      summary: Access private form
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+            examples:
+              AccessPrivateFormRequest:
+                value:
+                  password: secure-password
+                summary: Access private form request
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PrivateFormAccess'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+              examples:
+                SuccessfulAccessResponse:
+                  value:
+                    access_token: example-access-token
+                    token_type: Bearer
+                  summary: Successful access response
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                PublicFormError:
+                  value:
+                    detail: This form is public.
+                  summary: Public form error
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                InvalidPasswordError:
+                  value:
+                    detail: Invalid password.
+                  summary: Invalid password error
           description: ''
   /api/v1/public/forms/{slug}/submissions/:
     post:
@@ -1721,6 +1790,13 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PrivateFormAccess:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+      - password
     Process:
       type: object
       properties:
@@ -1781,69 +1857,6 @@ components:
       - form
       - id
       - order
-    PublicChoice:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        label:
-          type: string
-          maxLength: 255
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-      required:
-      - id
-      - label
-      - order
-    PublicForm:
-      type: object
-      properties:
-        title:
-          type: string
-          maxLength: 255
-        description:
-          type: string
-        questions:
-          type: array
-          items:
-            $ref: '#/components/schemas/PublicQuestion'
-          readOnly: true
-      required:
-      - description
-      - questions
-      - title
-    PublicQuestion:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-        text:
-          type: string
-          maxLength: 255
-        is_required:
-          type: boolean
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-        config: {}
-        choices:
-          type: array
-          items:
-            $ref: '#/components/schemas/PublicChoice'
-          readOnly: true
-      required:
-      - choices
-      - id
-      - order
-      - text
-      - type
     PurposeEnum:
       enum:
       - login

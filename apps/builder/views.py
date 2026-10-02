@@ -13,6 +13,7 @@ from .serializers import (
     CategorySerializer,
     FormSerializer,
     PublicFormSerializer,
+    PrivateFormAccessSerializer,
     QuestionSerializer,
 )
 from .token_utils import (
@@ -225,28 +226,17 @@ class QuestionDetailView(generics.RetrieveUpdateDestroyAPIView):
 class PublicFormView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, slug):
-        form = get_object_or_404(Form, slug=slug)
-
-        if not form.is_public:
-            token = request.headers.get("X-Form-Access-Token")
-
-            if not verify_form_access_token(form, token):
-                return Response(
-                    {"detail": "This form is private. Password required."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-        record_visit(request, form=form)
-        return Response(PublicFormSerializer(form).data)
-
-
-class PrivateFormAccessView(APIView):
-    permission_classes = [AllowAny]
-
     @extend_schema(
         summary="Access private form",
-        request=None,
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "password": {"type": "string"},
+                },
+                "required": ["password"],
+            }
+        },
         responses={
             200: {
                 "type": "object",
@@ -255,9 +245,122 @@ class PrivateFormAccessView(APIView):
                     "token_type": {"type": "string"},
                 },
             },
-            400: {"type": "object"},
-            403: {"type": "object"},
+            400: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+            403: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
         },
+        examples=[
+            OpenApiExample(
+                "Access private form request",
+                value={"password": "secure-password"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Successful access response",
+                value={
+                    "access_token": "example-access-token",
+                    "token_type": "Bearer",
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Public form error",
+                value={"detail": "This form is public."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Invalid password error",
+                value={"detail": "Invalid password."},
+                response_only=True,
+                status_codes=["403"],
+            ),
+        ],
+    )
+    def get(self, request, slug):
+        form = get_object_or_404(Form, slug=slug)
+
+        if not form.is_public:
+            token = request.headers.get("X-Form-Access-Token")
+
+            if not verify_form_access_token(form, token):
+                return Response(
+                    {
+                        "detail": (
+                            "This form is private. Password required."
+                        )
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        record_visit(request, form=form)
+        return Response(PublicFormSerializer(form).data)
+
+class PrivateFormAccessView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Access private form",
+        request=PrivateFormAccessSerializer,
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "access_token": {"type": "string"},
+                    "token_type": {"type": "string"},
+                },
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+            403: {
+                "type": "object",
+                "properties": {
+                    "detail": {"type": "string"},
+                },
+            },
+        },
+        examples=[
+            OpenApiExample(
+                "Access private form request",
+                value={"password": "secure-password"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Successful access response",
+                value={
+                    "access_token": "example-access-token",
+                    "token_type": "Bearer",
+                },
+                response_only=True,
+                status_codes=["200"],
+            ),
+            OpenApiExample(
+                "Public form error",
+                value={"detail": "This form is public."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+            OpenApiExample(
+                "Invalid password error",
+                value={"detail": "Invalid password."},
+                response_only=True,
+                status_codes=["403"],
+            ),
+        ],
     )
     def post(self, request, slug):
         form = get_object_or_404(Form, slug=slug)
